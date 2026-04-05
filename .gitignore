@@ -1,1 +1,32 @@
-/target
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock.orig
+
+# Build outputs
+/dist/
+/build/
+
+# Dev scripts — local only, never committed
+/scripts/dev/
+
+# VSCode (personal settings)
+.vscode/
+
+# Editor
+*.swp
+*.swo
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Nova compiled output
+*.nv.o
+*.nv.out
+
+# Environment
+.env
+.env.local

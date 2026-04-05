@@ -29,3 +29,6 @@ pub fn lex(source: &str) -> (Vec<(Token, Span)>, Vec<LexError>) {
 
     (tokens, errors)
 }
+
+#[cfg(test)]
+mod tests;
