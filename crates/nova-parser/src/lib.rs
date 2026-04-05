@@ -4,14 +4,17 @@ pub mod error;
 pub use ast::Program;
 pub use error::ParseError;
 
-use nova_lexer::{lex, Span, Token};
+use nova_lexer::lex;
 
 /// Parse Nova source into a Program AST.
 /// Returns the program and any parse errors (errors are non-fatal where possible).
 pub fn parse(source: &str, filename: &str) -> (Program, Vec<ParseError>) {
     let (tokens, lex_errors) = lex(source);
 
-    let mut errors: Vec<ParseError> = lex_errors.into_iter().map(ParseError::Lex).collect();
+    let errors: Vec<ParseError> = lex_errors
+        .into_iter()
+        .map(ParseError::Lex)
+        .collect();
 
     // Parser is work-in-progress — will be implemented with chumsky
     // For now return an empty program so the pipeline compiles end-to-end
