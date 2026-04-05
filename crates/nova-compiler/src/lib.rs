@@ -25,7 +25,10 @@ pub fn compile(source_path: &Path, output_path: &Path) -> CompileResult {
         Ok(s) => s,
         Err(e) => {
             return CompileResult {
-                program: Program { items: vec![], source_file: source_path.display().to_string() },
+                program: Program {
+                    items: vec![],
+                    source_file: source_path.display().to_string(),
+                },
                 errors: vec![CompileError::Io(e.to_string())],
                 output: None,
             };
@@ -37,13 +40,14 @@ pub fn compile(source_path: &Path, output_path: &Path) -> CompileResult {
     // ── 2. Parse ──────────────────────────────────────────────────────────────
     let (program, parse_errors) = parse(&source, &filename);
 
-    let errors: Vec<CompileError> = parse_errors
-        .into_iter()
-        .map(CompileError::Parse)
-        .collect();
+    let errors: Vec<CompileError> = parse_errors.into_iter().map(CompileError::Parse).collect();
 
     if !errors.is_empty() {
-        return CompileResult { program, errors, output: None };
+        return CompileResult {
+            program,
+            errors,
+            output: None,
+        };
     }
 
     // ── 3. Type Check  (TODO: nova-typechecker crate) ─────────────────────────

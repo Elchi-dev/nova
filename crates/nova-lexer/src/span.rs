@@ -22,6 +22,9 @@ impl Span {
 
 impl From<std::ops::Range<usize>> for Span {
     fn from(r: std::ops::Range<usize>) -> Self {
-        Self { start: r.start, end: r.end }
+        Self {
+            start: r.start,
+            end: r.end,
+        }
     }
 }

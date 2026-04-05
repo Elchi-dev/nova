@@ -103,7 +103,11 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Build { file, output, emit_ir } => cmd_build(file, output, emit_ir),
+        Command::Build {
+            file,
+            output,
+            emit_ir,
+        } => cmd_build(file, output, emit_ir),
         Command::Run { file, args } => cmd_run(file, args),
         Command::Check { file } => cmd_check(file),
         Command::Fmt { paths, check } => cmd_fmt(paths, check),
@@ -115,9 +119,7 @@ fn main() {
 }
 
 fn cmd_build(file: PathBuf, output: Option<PathBuf>, emit_ir: bool) {
-    let output = output.unwrap_or_else(|| {
-        file.with_extension("")
-    });
+    let output = output.unwrap_or_else(|| file.with_extension(""));
 
     print_step("Compiling", &file.display().to_string());
 

@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 /// All tokens in the Nova language.
 #[derive(Logos, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[logos(skip r"[ \t\r]+")]   // skip whitespace (not newlines — significant)
-#[logos(skip r"#[^\n]*")]    // skip line comments
+#[logos(skip r"[ \t\r]+")] // skip whitespace (not newlines — significant)
+#[logos(skip r"#[^\n]*")] // skip line comments
 pub enum Token {
     // ── Literals ────────────────────────────────────────────────────────────
     #[regex(r"[0-9]+", |lex| lex.slice().parse::<i64>().ok())]
@@ -90,19 +90,32 @@ pub enum Token {
     Pass,
 
     // ── Types ─────────────────────────────────────────────────────────────────
-    #[token("i8")]   TypeI8,
-    #[token("i16")]  TypeI16,
-    #[token("i32")]  TypeI32,
-    #[token("i64")]  TypeI64,
-    #[token("u8")]   TypeU8,
-    #[token("u16")]  TypeU16,
-    #[token("u32")]  TypeU32,
-    #[token("u64")]  TypeU64,
-    #[token("f32")]  TypeF32,
-    #[token("f64")]  TypeF64,
-    #[token("bool")] TypeBool,
-    #[token("str")]  TypeStr,
-    #[token("void")] TypeVoid,
+    #[token("i8")]
+    TypeI8,
+    #[token("i16")]
+    TypeI16,
+    #[token("i32")]
+    TypeI32,
+    #[token("i64")]
+    TypeI64,
+    #[token("u8")]
+    TypeU8,
+    #[token("u16")]
+    TypeU16,
+    #[token("u32")]
+    TypeU32,
+    #[token("u64")]
+    TypeU64,
+    #[token("f32")]
+    TypeF32,
+    #[token("f64")]
+    TypeF64,
+    #[token("bool")]
+    TypeBool,
+    #[token("str")]
+    TypeStr,
+    #[token("void")]
+    TypeVoid,
 
     // ── Decorators ───────────────────────────────────────────────────────────
     // @decorator — lexed as a single token including the @
@@ -114,41 +127,70 @@ pub enum Token {
     Ident(String),
 
     // ── Operators ─────────────────────────────────────────────────────────────
-    #[token("+")]  Plus,
-    #[token("-")]  Minus,
-    #[token("*")]  Star,
-    #[token("/")]  Slash,
-    #[token("%")]  Percent,
+    #[token("+")]
+    Plus,
+    #[token("-")]
+    Minus,
+    #[token("*")]
+    Star,
+    #[token("/")]
+    Slash,
+    #[token("%")]
+    Percent,
 
-    #[token("==")]  EqEq,
-    #[token("!=")]  BangEq,
-    #[token("<")]   Lt,
-    #[token("<=")]  LtEq,
-    #[token(">")]   Gt,
-    #[token(">=")]  GtEq,
+    #[token("==")]
+    EqEq,
+    #[token("!=")]
+    BangEq,
+    #[token("<")]
+    Lt,
+    #[token("<=")]
+    LtEq,
+    #[token(">")]
+    Gt,
+    #[token(">=")]
+    GtEq,
 
-    #[token("&&")]  AmpAmp,
-    #[token("||")]  PipePipe,
-    #[token("!")]   Bang,
+    #[token("&&")]
+    AmpAmp,
+    #[token("||")]
+    PipePipe,
+    #[token("!")]
+    Bang,
 
-    #[token("=")]   Eq,
-    #[token("+=")]  PlusEq,
-    #[token("-=")]  MinusEq,
-    #[token("*=")]  StarEq,
-    #[token("/=")]  SlashEq,
+    #[token("=")]
+    Eq,
+    #[token("+=")]
+    PlusEq,
+    #[token("-=")]
+    MinusEq,
+    #[token("*=")]
+    StarEq,
+    #[token("/=")]
+    SlashEq,
 
-    #[token("->")]  Arrow,
-    #[token(":")]   Colon,
-    #[token("::")]  ColonColon,
-    #[token(",")]   Comma,
-    #[token(".")]   Dot,
-    #[token("..")]  DotDot,
+    #[token("->")]
+    Arrow,
+    #[token(":")]
+    Colon,
+    #[token("::")]
+    ColonColon,
+    #[token(",")]
+    Comma,
+    #[token(".")]
+    Dot,
+    #[token("..")]
+    DotDot,
 
     // ── Delimiters ────────────────────────────────────────────────────────────
-    #[token("(")]  LParen,
-    #[token(")")]  RParen,
-    #[token("[")]  LBracket,
-    #[token("]")]  RBracket,
+    #[token("(")]
+    LParen,
+    #[token(")")]
+    RParen,
+    #[token("[")]
+    LBracket,
+    #[token("]")]
+    RBracket,
 
     // ── Layout (significant whitespace, Python-style) ─────────────────────────
     #[token("\n")]

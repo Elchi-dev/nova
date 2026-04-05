@@ -131,9 +131,15 @@ pub enum Stmt {
         body: Vec<Stmt>,
         span: Span,
     },
-    Break { span: Span },
-    Continue { span: Span },
-    Pass { span: Span },
+    Break {
+        span: Span,
+    },
+    Continue {
+        span: Span,
+    },
+    Pass {
+        span: Span,
+    },
     Expr(Expr),
     Item(Box<Item>),
 }
@@ -197,9 +203,19 @@ pub enum FStrPart {
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum BinOp {
-    Add, Sub, Mul, Div, Mod,
-    Eq, NotEq, Lt, LtEq, Gt, GtEq,
-    And, Or,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Eq,
+    NotEq,
+    Lt,
+    LtEq,
+    Gt,
+    GtEq,
+    And,
+    Or,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

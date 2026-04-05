@@ -1,5 +1,5 @@
-use thiserror::Error;
 use nova_lexer::LexError;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
 pub enum ParseError {

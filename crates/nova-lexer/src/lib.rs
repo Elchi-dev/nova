@@ -1,10 +1,10 @@
-pub mod token;
 pub mod error;
 pub mod span;
+pub mod token;
 
-pub use token::Token;
 pub use error::LexError;
 pub use span::Span;
+pub use token::Token;
 
 use logos::Logos;
 

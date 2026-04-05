@@ -1,5 +1,5 @@
-use thiserror::Error;
 use nova_parser::ParseError;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CompileError {

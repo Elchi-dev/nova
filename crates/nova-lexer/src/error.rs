@@ -1,5 +1,5 @@
-use thiserror::Error;
 use crate::Span;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
 pub enum LexError {
