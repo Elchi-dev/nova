@@ -11,26 +11,18 @@ pub struct Decorator {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DecoratorArg {
-    /// key = "value"
     KeyValue { key: String, value: String },
-    /// bare identifier
     Ident(String),
 }
 
 /// Top-level items in a Nova file
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Item {
-    /// fn name(params) -> ret: body
     Function(Function),
-    /// module Name: body
     Module(ModuleDecl),
-    /// struct Name: fields
     Struct(StructDecl),
-    /// import path [as alias]
     Import(ImportDecl),
-    /// @runtime: block — entrypoint config
     RuntimeConfig(RuntimeConfig),
-    /// Top-level expression statement
     Expr(Expr),
 }
 
@@ -81,14 +73,13 @@ pub struct ImportDecl {
     pub span: Span,
 }
 
-/// The @runtime: block at the top of main.nv
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuntimeConfig {
     pub entries: Vec<(String, String)>,
     pub span: Span,
 }
 
-// ── Statements ───────────────────────────────────────────────────────────────
+// ── Statements ────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Stmt {
@@ -141,57 +132,56 @@ pub enum Stmt {
         span: Span,
     },
     Expr(Expr),
-    Item(Box<Item>),
 }
 
-// ── Expressions ──────────────────────────────────────────────────────────────
+impl Stmt {
+    /// Extract the inner expression, or wrap the statement in a dummy Ident.
+    /// Used when a statement appears where an expression is needed (e.g. in
+    /// module item lists during bootstrapping).
+    pub fn into_expr(self) -> Expr {
+        match self {
+            Stmt::Expr(e) => e,
+            _ => Expr::Ident("__stmt__".to_string(), Span::default()),
+        }
+    }
+}
+
+// ── Expressions ───────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Expr {
-    /// Integer literal
     Int(i64, Span),
-    /// Float literal
     Float(f64, Span),
-    /// String literal
     Str(String, Span),
-    /// Boolean literal
     Bool(bool, Span),
-    /// Variable / name reference
     Ident(String, Span),
-    /// Binary operation: a + b, a == b, etc.
     BinOp {
         op: BinOp,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
         span: Span,
     },
-    /// Unary operation: !x, -x
     UnaryOp {
         op: UnaryOp,
         expr: Box<Expr>,
         span: Span,
     },
-    /// Function call: f(args)
     Call {
         callee: Box<Expr>,
         args: Vec<Expr>,
         span: Span,
     },
-    /// Field access: module.field
     Field {
         object: Box<Expr>,
         field: String,
         span: Span,
     },
-    /// Index: arr[i]
     Index {
         object: Box<Expr>,
         index: Box<Expr>,
         span: Span,
     },
-    /// Array literal: [a, b, c]
     Array(Vec<Expr>, Span),
-    /// f-string: f"Hello, {name}"
     FStr(Vec<FStrPart>, Span),
 }
 
@@ -224,7 +214,7 @@ pub enum UnaryOp {
     Not,
 }
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TypeExpr {
@@ -233,7 +223,7 @@ pub enum TypeExpr {
     Optional(Box<TypeExpr>, Span),
 }
 
-// ── Top-level program ────────────────────────────────────────────────────────
+// ── Top-level program ─────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Program {

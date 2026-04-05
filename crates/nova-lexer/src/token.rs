@@ -2,6 +2,11 @@ use logos::Logos;
 use serde::{Deserialize, Serialize};
 
 /// All tokens in the Nova language.
+///
+/// Variants without a `#[token]` or `#[regex]` attribute (`BlockStart`,
+/// `BlockEnd`) are synthetic — they are never produced by the logos lexer
+/// directly but are inserted by the pre-processor that converts significant
+/// indentation into explicit block markers.
 #[derive(Logos, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[logos(skip r"[ \t\r]+")] // skip whitespace (not newlines — significant)
 #[logos(skip r"#[^\n]*")] // skip line comments
@@ -118,7 +123,6 @@ pub enum Token {
     TypeVoid,
 
     // ── Decorators ───────────────────────────────────────────────────────────
-    // @decorator — lexed as a single token including the @
     #[regex(r"@[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice()[1..].to_string())]
     Decorator(String),
 
@@ -192,14 +196,39 @@ pub enum Token {
     #[token("]")]
     RBracket,
 
-    // ── Layout (significant whitespace, Python-style) ─────────────────────────
+    // ── Layout tokens (significant whitespace) ────────────────────────────────
     #[token("\n")]
     Newline,
 
     #[regex(r"\n[ \t]+", |lex| {
-        // Count spaces/tabs after newline for indent tracking
         let s = lex.slice();
         s[1..].chars().map(|c| if c == '\t' { 4usize } else { 1 }).sum::<usize>()
     })]
     Indent(usize),
+
+    // ── Synthetic block tokens (inserted by preprocessor, never by logos) ────
+    BlockStart,
+    BlockEnd,
+}
+
+// ── Eq + Hash ────────────────────────────────────────────────────────────────
+//
+// `f64` does not implement `Eq` or `Hash`, so we can't derive them.
+// We implement them manually. NaN tokens should never appear in practice.
+
+impl Eq for Token {}
+
+impl std::hash::Hash for Token {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Hash the discriminant first so different variants never collide.
+        std::mem::discriminant(self).hash(state);
+        match self {
+            Token::Int(n) => n.hash(state),
+            Token::Float(f) => f.to_bits().hash(state),
+            Token::Str(s) | Token::Decorator(s) | Token::Ident(s) => s.hash(state),
+            Token::Indent(n) => n.hash(state),
+            // All unit variants are fully distinguished by their discriminant.
+            _ => {}
+        }
+    }
 }

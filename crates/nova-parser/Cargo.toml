@@ -11,3 +11,6 @@ nova-lexer = { path = "../nova-lexer" }
 chumsky.workspace = true
 thiserror.workspace = true
 serde = { workspace = true }
+
+[dev-dependencies]
+nova-lexer = { path = "../nova-lexer" }
