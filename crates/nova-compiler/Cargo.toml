@@ -1,0 +1,15 @@
+[package]
+name = "nova-compiler"
+description = "Compiler pipeline for the Nova programming language"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+nova-lexer   = { path = "../nova-lexer" }
+nova-parser  = { path = "../nova-parser" }
+thiserror.workspace = true
+anyhow.workspace = true
+serde = { workspace = true }
+serde_json.workspace = true

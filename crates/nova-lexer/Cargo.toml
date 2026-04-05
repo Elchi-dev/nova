@@ -1,0 +1,13 @@
+[package]
+name = "nova-lexer"
+description = "Lexer for the Nova programming language"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+logos.workspace = true
+thiserror.workspace = true
+miette = { workspace = true }
+serde = { workspace = true }

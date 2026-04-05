@@ -1,0 +1,13 @@
+[package]
+name = "nova-parser"
+description = "Parser and AST for the Nova programming language"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+nova-lexer = { path = "../nova-lexer" }
+chumsky.workspace = true
+thiserror.workspace = true
+serde = { workspace = true }

@@ -1,0 +1,5 @@
+# examples/hello.nv — Hello World in Nova
+
+fn main():
+    let msg = "Hello, Nova!"
+    print(msg)

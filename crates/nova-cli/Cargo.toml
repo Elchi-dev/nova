@@ -1,0 +1,17 @@
+[package]
+name = "nova-cli"
+description = "The Nova language toolchain CLI"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "nova"
+path = "src/main.rs"
+
+[dependencies]
+nova-compiler = { path = "../nova-compiler" }
+clap.workspace = true
+anyhow.workspace = true
+colored.workspace = true
