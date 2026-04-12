@@ -1,0 +1,117 @@
+# Nova Language — Feature Showcase
+# This is what Nova code looks like.
+
+import std.io
+import foreign("raylib.h", lang: "c")
+
+# ── Structs ──────────────────────────────────────────────
+
+pub struct Player:
+    let name: str
+    let mut health: int = 100
+    let mut position: Vec2
+
+pub struct Vec2:
+    let x: float = 0.0
+    let y: float = 0.0
+
+# ── Enums with variants ─────────────────────────────────
+
+pub enum Direction:
+    case Up
+    case Down
+    case Left
+    case Right
+
+pub enum Result[T, E]:
+    case Ok(T)
+    case Err(E)
+
+# ── Traits ───────────────────────────────────────────────
+
+pub trait Drawable:
+    fn draw(self) -> none
+    fn bounds(self) -> Vec2
+
+# ── Implementations ──────────────────────────────────────
+
+impl Drawable for Player:
+    fn draw(self) -> none:
+        io.print(f"Drawing {self.name} at ({self.position.x}, {self.position.y})")
+
+    fn bounds(self) -> Vec2:
+        return Vec2 { x: 32.0, y: 32.0 }
+
+# ── Contracts (Design by Contract) ───────────────────────
+
+fn divide(a: float, b: float) -> float:
+    require b != 0.0
+    ensure result * b == a
+    return a / b
+
+# ── Effect System ────────────────────────────────────────
+
+pure fn add(a: int, b: int) -> int:
+    return a + b
+
+fn read_config(path: str) -> str [io, error]:
+    let content = io.read_file(path)
+    return content
+
+# ── Decorators ───────────────────────────────────────────
+
+@cached
+fn fibonacci(n: int) -> int:
+    if n <= 1:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+@log_time
+@validate
+fn process_data(data: list[int]) -> list[int]:
+    return data
+        |> filter(x => x > 0)
+        |> map(x => x * 2)
+        |> sort
+
+# ── Pipe Operator ────────────────────────────────────────
+
+fn transform_pipeline(input: list[str]) -> list[str]:
+    return input
+        |> filter(s => s.len() > 3)
+        |> map(s => s.upper())
+        |> sort
+
+# ── Pattern Matching ─────────────────────────────────────
+
+fn describe_direction(dir: Direction) -> str:
+    match dir:
+        case Direction.Up:
+            return "going up"
+        case Direction.Down:
+            return "going down"
+        case _:
+            return "going sideways"
+
+# ── Inline brace syntax ─────────────────────────────────
+
+fn double(x: int) -> int { return x * 2; }
+fn square(x: int) -> int { return x * x; }
+
+# ── Main entry point ────────────────────────────────────
+
+fn main():
+    let player = Player {
+        name: "Nova",
+        health: 100,
+        position: Vec2 { x: 0.0, y: 0.0 }
+    }
+
+    player.draw()
+
+    let result = [1, 2, 3, 4, 5]
+        |> map(x => x * 10)
+        |> filter(x => x > 20)
+
+    io.print(f"Result: {result}")
+    io.print(f"Fibonacci(10) = {fibonacci(10)}")

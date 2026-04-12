@@ -1,0 +1,10 @@
+[package]
+name = "nova-runtime"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Nova runtime — arena memory, module hot-reloading, and FFI"
+
+[dependencies]
+thiserror = { workspace = true }

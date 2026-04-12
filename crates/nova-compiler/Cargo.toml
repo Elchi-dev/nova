@@ -1,0 +1,13 @@
+[package]
+name = "nova-compiler"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Nova compiler core — lexer, parser, type checker, and code generation"
+
+[dependencies]
+logos = { workspace = true }
+miette = { workspace = true }
+thiserror = { workspace = true }
+codespan-reporting = { workspace = true }

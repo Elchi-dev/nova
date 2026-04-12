@@ -1,0 +1,25 @@
+[workspace]
+members = [
+    "crates/nova-cli",
+    "crates/nova-compiler",
+    "crates/nova-runtime",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Elchi-dev"]
+license = "MIT"
+repository = "https://github.com/Elchi-dev/nova"
+description = "The Nova Programming Language — Fast, modular, Python-like syntax with arena-based memory"
+
+[workspace.dependencies]
+nova-compiler = { path = "crates/nova-compiler" }
+nova-runtime = { path = "crates/nova-runtime" }
+clap = { version = "4", features = ["derive"] }
+miette = { version = "7", features = ["fancy"] }
+thiserror = "2"
+logos = "0.15"
+codespan-reporting = "0.11"
+colored = "3"
