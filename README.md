@@ -1,139 +1,200 @@
 <p align="center">
-  <h1 align="center">✦ Nova</h1>
-  <p align="center"><strong>Fast. Modular. Familiar.</strong></p>
-  <p align="center">A compiled programming language with Python-like syntax, arena-based memory, and transparent hot-reloading.</p>
+  <img src="https://img.shields.io/badge/status-pre--alpha-orange" alt="Status">
+  <img src="https://img.shields.io/badge/language-Rust-B7410E" alt="Language">
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
 </p>
 
+<h1 align="center">✦ Nova</h1>
+<p align="center"><strong>Write like Python. Run like Rust. Reload like Erlang.</strong></p>
+<p align="center">A compiled programming language with arena-based memory,<br>transparent hot-reloading, and zero-overhead abstractions.</p>
+
 <p align="center">
-  <a href="#features">Features</a> •
-  <a href="#quickstart">Quickstart</a> •
-  <a href="#syntax">Syntax</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#building">Building</a>
+  <a href="#what-makes-nova-different">Why Nova?</a> •
+  <a href="#quick-look">Quick Look</a> •
+  <a href="#features-at-a-glance">Features</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="ROADMAP.md">Roadmap</a> •
+  <a href="docs/NOVA_FEATURES.md">Full Feature Guide</a>
 </p>
 
 ---
 
-## Why Nova?
+## What Makes Nova Different?
 
-Nova is built on a simple idea: **writing fast software shouldn't be painful.**
+Every language makes you choose: **easy to write** *or* **fast to run**. Python is beautiful but slow. Rust is fast but complex. Go is simple but limited.
 
-Python is beautiful to write but slow. Rust is fast but has a steep learning curve. Go is simple but lacks expressiveness. Nova takes the best parts of each — Python's readability, Rust's performance, Go's simplicity — and combines them with features no other language offers.
+Nova rejects that trade-off.
 
-## Features
+| | Python | Go | Rust | **Nova** |
+|---|--------|-----|------|----------|
+| **Syntax** | Beautiful | Clean | Complex | **Beautiful** |
+| **Performance** | ~100x slower than C | ~1.5x slower | C-speed | **C-speed (LLVM)** |
+| **Memory** | GC (pauses) | GC (pauses) | Borrow checker (complex) | **Arenas (zero-cost)** |
+| **Learning curve** | Days | Weeks | Months | **Days** |
+| **Hot-reload** | ✗ | ✗ | ✗ | **✓ Built-in** |
+| **Effect tracking** | ✗ | ✗ | ✗ | **✓ Built-in** |
+| **C interop** | ctypes (painful) | CGo (limited) | FFI (manual) | **Header import** |
 
-- **Context-Aware Memory** — No garbage collector. No borrow checker. Arena-based allocation with compiler-driven escape analysis. Objects are freed instantly when their scope ends, in bulk, with zero runtime overhead.
-- **Transparent Hot-Reloading** — Your code is automatically split into modules at compile time. Change a file, and only the affected module is reloaded — while the program keeps running. No manual setup required.
-- **Python-Like Syntax** — Tab-based indentation by default, with optional `{}` for one-liners. If you know Python, you can read Nova.
-- **Direct C Interop** — Import C headers directly: `import foreign("raylib.h", lang: "c")`. No bindings, no wrappers.
-- **Built-in Decorators** — Compile-time code transformation via `@decorators`, more powerful than Python's runtime decorators.
-- **Effect System** — Functions declare their side effects. Pure functions are guaranteed pure by the compiler.
-- **Design by Contract** — Built-in `require` / `ensure` for pre/post-conditions, verified at compile time where possible.
-- **Pipe Operator** — Chain operations cleanly: `data |> filter |> transform |> output`.
-- **Semantic-Aware Compilation** — The compiler understands intent, not just syntax. `sort |> reverse` becomes a single reverse-sort pass automatically.
-- **Structured Concurrency** — Scope-based tasks that can never be orphaned, integrated with the arena memory model.
+---
 
-## Quickstart
-
-```bash
-# Build from source
-git clone https://github.com/Elchi-dev/nova.git
-cd nova
-cargo build --release
-
-# Run a Nova file
-nova run examples/showcase.nova
-
-# Other commands
-nova build .              # Compile to binary
-nova check .              # Type-check and lint
-nova fmt .                # Format source files
-nova test .               # Run tests
-nova repl                 # Interactive REPL
-nova init my_project      # Scaffold new project
-```
-
-## Syntax
+## Quick Look
 
 ```python
 import std.io
+import foreign("sqlite3.h", lang: "c")
 
-# Structs with defaults
-pub struct Player:
+pub struct User:
     let name: str
-    let mut health: int = 100
+    let mut score: int = 0
 
-# Contracts
-fn divide(a: float, b: float) -> float:
-    require b != 0.0
-    ensure result * b == a
-    return a / b
+# Effect system — the compiler knows this function does IO
+fn load_user(id: int) -> User [io, error]:
+    let row = db.query(f"SELECT * FROM users WHERE id = {id}")
+    return User { name: row.name, score: row.score }
 
-# Decorators + pipe operator
+# Pure function — guaranteed no side effects, safe to cache
 @cached
+pure fn fibonacci(n: int) -> int:
+    if n <= 1:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+# Contracts — compiler-verified preconditions
+fn withdraw(account: Account, amount: float) -> Account:
+    require amount > 0.0
+    require amount <= account.balance
+    ensure result.balance == account.balance - amount
+    return Account { balance: account.balance - amount }
+
+# Pipes — data flows left to right
 fn process(data: list[int]) -> list[int]:
     return data
         |> filter(x => x > 0)
         |> map(x => x * 2)
         |> sort
 
-# Inline brace syntax
+# One-liners with braces
 fn double(x: int) -> int { return x * 2; }
 
-# Effect system
-pure fn add(a: int, b: int) -> int:
-    return a + b
-
-fn read_file(path: str) -> str [io, error]:
-    return io.read(path)
-
-# Direct C interop
-import foreign("raylib.h", lang: "c")
-
 fn main():
-    let player = Player { name: "Nova", health: 100 }
-    io.print(f"Hello, {player.name}!")
+    let user = load_user(1)
+    let result = [1, 2, 3, 4, 5] |> process
+    io.print(f"Hello {user.name}, result: {result}")
 ```
 
-## Architecture
+---
 
-Nova is structured as a Rust workspace with three crates:
+## Features at a Glance
+
+### Context-Aware Memory
+No garbage collector. No borrow checker. Nova uses arena-based allocation with compile-time escape analysis. ~95% of allocations are bump-allocated and freed in bulk at scope exit. The remaining ~5% (values that escape their scope) use lightweight reference counting. The developer writes normal code — the compiler decides.
+
+### Transparent Hot-Reloading
+The compiler automatically splits your code into modules based on dependency analysis. At runtime, changed modules are swapped using a blue-green strategy: the old version drains its active calls while the new version handles new ones. No manual module design. No `code_change` callbacks. Your code is live the moment you save.
+
+### Effect System
+Functions declare their side effects: `[io]`, `[error]`, `[net]`. The `pure` keyword guarantees zero side effects, enforced by the compiler. Pure functions can be cached, parallelized, and reordered safely.
+
+### Design by Contract
+Built-in `require` (preconditions) and `ensure` (postconditions) are verified at compile time where provable, and serve as runtime assertions in debug builds.
+
+### Direct C Interop
+`import foreign("header.h", lang: "c")` — the compiler parses the C header and generates type-safe bindings. No wrappers, no ceremony.
+
+### Compile-Time Decorators
+`@cached`, `@log_time`, `@validate` — decorators are compile-time code transformations, not runtime wrappers. Zero overhead from the decorator mechanism itself.
+
+### Pipe Operator
+`data |> transform |> filter |> output` — chain operations left-to-right instead of nesting function calls inside-out.
+
+### Semantic-Aware Compilation
+The compiler optimizes at the semantic level: `sort |> reverse` becomes a single reverse-sort. `map(f) |> map(g)` fuses into `map(f∘g)`. Same result, fewer operations. Opt out with `@literal`.
+
+### Structured Concurrency
+Scope-based tasks that cannot outlive their parent. Each task gets its own arena. No orphaned goroutines, no dangling futures.
+
+---
+
+## Getting Started
+
+### Build from Source
+
+```bash
+git clone https://github.com/Elchi-dev/nova.git
+cd nova
+cargo build --release
+```
+
+### CLI
+
+```bash
+nova run file.nova        # Compile and execute
+nova build                # Compile to native binary
+nova build --release      # Fully optimized (LLVM)
+nova check                # Type-check + lint
+nova fmt                  # Format source code
+nova test                 # Run test suite
+nova doc                  # Generate documentation
+nova repl                 # Interactive REPL
+nova init my_project      # Scaffold new project
+nova mod add package      # Add dependency
+```
+
+---
+
+## Architecture
 
 ```
 nova/
 ├── crates/
-│   ├── nova-cli/          # CLI tool (nova run, build, check, fmt, ...)
-│   ├── nova-compiler/     # Lexer → Parser → Type Checker → Codegen
-│   │   └── src/
-│   │       ├── lexer/     # Tokenization with indentation tracking
-│   │       ├── parser/    # Recursive descent parser → AST
-│   │       ├── ast/       # Abstract syntax tree definitions
-│   │       ├── typechecker/  # Static type inference & checking
-│   │       ├── semantic/  # Escape analysis, module splitting, optimizations
-│   │       └── codegen/   # LLVM IR generation
-│   └── nova-runtime/      # Runtime support
-│       └── src/
-│           ├── memory/    # Arena allocator (Context-Aware Memory)
-│           ├── module/    # Hot-reload module manager
-│           └── ffi/       # C interop layer
-├── examples/              # Example .nova files
-└── docs/                  # Language documentation
+│   ├── nova-cli/            # CLI binary — all commands in one tool
+│   ├── nova-compiler/       # Compiler pipeline
+│   │   ├── lexer/           #   Source → Tokens (with indentation)
+│   │   ├── parser/          #   Tokens → AST (recursive descent)
+│   │   ├── ast/             #   Node definitions for all constructs
+│   │   ├── typechecker/     #   Static type inference & checking
+│   │   ├── semantic/        #   Escape analysis, effects, module splitting
+│   │   └── codegen/         #   AST → LLVM IR → machine code
+│   └── nova-runtime/        # Runtime support
+│       ├── memory/          #   Arena allocator (Context-Aware Memory)
+│       ├── module/          #   Hot-reload manager (blue-green swap)
+│       └── ffi/             #   C interop layer
+├── examples/                # Example .nova files
+├── docs/                    # Language documentation
+├── ROADMAP.md               # Detailed feature roadmap
+└── LICENSE                  # MIT
 ```
 
-## Building
+---
 
-Requires Rust 1.75+ and Cargo.
+## Known Challenges
 
-```bash
-cargo build              # Debug build
-cargo build --release    # Optimized build
-cargo test               # Run all tests
-```
+We're building something ambitious. These are the hard problems we're actively solving:
+
+**Inlining vs Hot-Reload** — LLVM inlining across module boundaries would break hot-reload. Our solution: dev mode uses indirect calls (module dispatch table), release mode enables full inlining. Cost: ~2-5ns per cross-module call in dev, zero in release.
+
+**Struct Layout Changes** — Changing a struct's fields while the program runs would corrupt memory. Our solution: reject hot-reload when layouts change, with a clear error message. Behavior changes reload; shape changes require restart.
+
+**Escape Analysis Awareness** — A small code change could flip an allocation from arena to ref-counted. Our solution: `nova check` reports allocation profiles, and warns when escape behavior changes.
+
+See [ROADMAP.md](ROADMAP.md) for the full technical discussion.
+
+---
 
 ## Status
 
-Nova is in early development. The lexer and parser are functional, the arena memory system is implemented, and the module hot-reload manager is in place. Active work is focused on the type checker and LLVM codegen.
+Nova is in **pre-alpha**. The compiler frontend (lexer, parser, AST) is functional, the arena memory system is implemented, and the module manager is in place. Active work is on the type checker and LLVM codegen.
 
-## License
+See the [Roadmap](ROADMAP.md) for detailed progress on every feature.
 
-MIT — see [LICENSE](LICENSE).
+---
+
+## Contributing
+
+Nova is open source under the MIT license. Contributions are welcome — whether it's language design discussions, compiler work in Rust, documentation, or testing.
+
+---
+
+<p align="center">
+  <strong>Nova</strong> — because writing fast software shouldn't be painful.
+</p>
