@@ -685,6 +685,29 @@ impl Parser {
 
         loop {
             match self.current_kind() {
+                TokenKind::LBrace => {
+                    // Struct init: Name { field: value, ... }
+                    // Only parse as struct init if the expression is an identifier
+                    if let Expression::Identifier(name) = &expr {
+                        let name = name.clone();
+                        self.advance(); // skip {
+                        let mut fields = Vec::new();
+                        while !self.at(TokenKind::RBrace) {
+                            let field_name =
+                                self.expect(TokenKind::Identifier)?.text.clone();
+                            self.expect(TokenKind::Colon)?;
+                            let field_value = self.parse_expression()?;
+                            fields.push((field_name, field_value));
+                            if self.at(TokenKind::Comma) {
+                                self.advance();
+                            }
+                        }
+                        self.expect(TokenKind::RBrace)?;
+                        expr = Expression::StructInit { name, fields };
+                    } else {
+                        break;
+                    }
+                }
                 TokenKind::LParen => {
                     self.advance();
                     let mut args = Vec::new();

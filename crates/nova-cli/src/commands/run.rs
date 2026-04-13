@@ -20,12 +20,26 @@ pub fn execute(file: PathBuf, _args: Vec<String>) -> Result<(), Box<dyn std::err
 
     // Lexer → Parser → Type Check → Codegen → Execute
     let tokens = nova_compiler::lexer::tokenize(&source)?;
-    let _ast = nova_compiler::parser::parse(tokens)?;
+    let ast = nova_compiler::parser::parse(tokens)?;
+
+    // Type check
+    let result = nova_compiler::typechecker::check(&ast);
+
+    if !result.errors.is_empty() {
+        for err in &result.errors {
+            eprintln!(
+                "  {} {}",
+                "✗".red().bold(),
+                err
+            );
+        }
+        return Err(format!("found {} type error(s)", result.errors.len()).into());
+    }
 
     println!(
-        "{} parsed {} tokens successfully",
+        "{} type-checked {} statement(s) successfully",
         "✓".green().bold(),
-        source.len()
+        ast.statements.len()
     );
 
     // TODO: Type checking, codegen, execution

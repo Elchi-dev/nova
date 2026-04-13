@@ -29,9 +29,12 @@ The foundation is in place: a working lexer, parser, AST, arena memory allocator
 | Lambda expressions | ✅ Done | `x => x * 2` |
 | Pattern matching (parsing) | ⚠️ Partial | `match/case` parsed, arm patterns need work |
 | F-string parsing | 🔲 Todo | `f"hello {name}"` — lexer token exists, parser needs interpolation |
-| Type inference engine | 🔲 Todo | Hindley-Milner style with bidirectional checking |
-| Type checker | 🔲 Todo | Static type validation, generic resolution |
-| Error reporting | 🔲 Todo | Human-friendly errors with source snippets (using `miette`) |
+| Struct init expressions | ✅ Done | `Point { x: 1, y: 2 }` parsed in expression context |
+| Type inference engine | ✅ Done | Hindley-Milner unification with substitution and occurs check |
+| Type checker | ✅ Done | Validates types, mutability, scoping, operators, struct fields |
+| Type environment with scoping | ✅ Done | Nested scopes, variable/function/type lookups |
+| Built-in types & functions | ✅ Done | int, float, bool, str, list, dict + print, len, range, filter, map, sort |
+| Error reporting | ⚠️ Partial | 22 error types defined, source location tracking in progress |
 
 ---
 
@@ -41,10 +44,10 @@ The foundation is in place: a working lexer, parser, AST, arena memory allocator
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Name resolution | 🔲 Todo | Scope tracking, variable binding |
+| Name resolution | ✅ Done | Scope tracking, variable binding, function lookups |
 | Escape analysis | 🔲 Todo | Determine which values leave their scope |
 | Effect inference | 🔲 Todo | Track `[io]`, `[error]` propagation through call graphs |
-| Effect validation | 🔲 Todo | `pure` functions cannot call effectful functions |
+| Effect validation | ⚠️ Partial | `pure` functions cannot call effectful functions (basic check) |
 | Contract verification | 🔲 Todo | Static checking of `require`/`ensure` where provable |
 | Auto-module boundary detection | 🔲 Todo | Dependency graph analysis for hot-reload splitting |
 | Semantic optimization passes | 🔲 Todo | Pattern fusion, redundancy elimination |
@@ -110,9 +113,9 @@ The foundation is in place: a working lexer, parser, AST, arena memory allocator
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| `nova run` | ⚠️ Partial | Invokes lexer + parser, no execution yet |
+| `nova run` | ⚠️ Partial | Lexer + parser + type checker, no execution yet |
 | `nova build` | 🔲 Stub | Needs codegen (Phase 3) |
-| `nova check` | 🔲 Stub | Needs type checker (Phase 1) |
+| `nova check` | ✅ Done | Full pipeline: lex → parse → type-check with error reporting |
 | `nova fmt` | 🔲 Todo | AST-based formatter, opinionated style |
 | `nova test` | 🔲 Stub | Test discovery, runner, assertions |
 | `nova doc` | 🔲 Stub | Generate HTML docs from doc comments |

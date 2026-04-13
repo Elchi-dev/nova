@@ -183,7 +183,7 @@ See [ROADMAP.md](ROADMAP.md) for the full technical discussion.
 
 ## Status
 
-Nova is in **pre-alpha**. The compiler frontend (lexer, parser, AST) is functional, the arena memory system is implemented, and the module manager is in place. Active work is on the type checker and LLVM codegen.
+Nova is in **pre-alpha**. The compiler frontend (lexer, parser, AST) is functional, the type checker with Hindley-Milner inference is operational, the arena memory system is implemented, and the module manager is in place. `nova check` performs full type checking. Active work is on LLVM codegen.
 
 See the [Roadmap](ROADMAP.md) for detailed progress on every feature.
 
