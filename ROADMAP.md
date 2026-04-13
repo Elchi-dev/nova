@@ -9,7 +9,7 @@ This roadmap tracks every feature of the Nova programming language — what's do
 
 ## Current Status: v0.1.0-dev
 
-The foundation is in place: a working lexer, parser, AST, arena memory allocator, and module hot-reload manager. The CLI skeleton supports all planned commands. No code generation yet — that's the next major milestone.
+The foundation is in place: a working lexer, parser, AST, type checker with Hindley-Milner inference, tree-walking interpreter, arena memory allocator, and module hot-reload manager. `nova run` executes programs end-to-end. `nova check` performs full type checking. The CLI supports all planned commands.
 
 ---
 
@@ -61,6 +61,12 @@ The foundation is in place: a working lexer, parser, AST, arena memory allocator
 
 | Feature | Status | Notes |
 |---------|--------|-------|
+| Tree-walking interpreter (`nova run`) | ✅ Done | Full execution: functions, recursion, loops, pipes, structs, lambdas |
+| Built-in functions | ✅ Done | print, len, range, str, abs, min, max, sum, sort, reverse, filter, map |
+| String methods | ✅ Done | upper, lower, trim, contains, starts_with, ends_with, split, replace |
+| Pipe operator execution | ✅ Done | `data \|> filter(pred) \|> map(fn) \|> sort` |
+| Struct construction & field access | ✅ Done | `Point { x: 1, y: 2 }`, `p.x` |
+| Lambda execution | ✅ Done | `x => x * 2` with closure capture |
 | LLVM IR generation | 🔲 Todo | Using `inkwell` (LLVM Rust bindings) |
 | Basic function compilation | 🔲 Todo | Functions → LLVM IR → machine code |
 | Arena memory integration | ⚠️ Partial | Arena allocator implemented, codegen integration pending |
@@ -69,7 +75,6 @@ The foundation is in place: a working lexer, parser, AST, arena memory allocator
 | Enum / variant dispatch | 🔲 Todo | Tagged unions in LLVM IR |
 | Trait vtable generation | 🔲 Todo | Dynamic dispatch via vtable pointers |
 | Binary output (`nova build`) | 🔲 Todo | Linking, output binary |
-| Interpreter mode (`nova run`) | 🔲 Todo | Tree-walking interpreter for fast dev cycle |
 
 ---
 
@@ -113,7 +118,7 @@ The foundation is in place: a working lexer, parser, AST, arena memory allocator
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| `nova run` | ⚠️ Partial | Lexer + parser + type checker, no execution yet |
+| `nova run` | ✅ Done | Lex → parse → type-check → execute (tree-walking interpreter) |
 | `nova build` | 🔲 Stub | Needs codegen (Phase 3) |
 | `nova check` | ✅ Done | Full pipeline: lex → parse → type-check with error reporting |
 | `nova fmt` | 🔲 Todo | AST-based formatter, opinionated style |

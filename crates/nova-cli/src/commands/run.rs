@@ -12,43 +12,31 @@ pub fn execute(file: PathBuf, _args: Vec<String>) -> Result<(), Box<dyn std::err
     }
 
     let source = std::fs::read_to_string(&file)?;
-    println!(
-        "{} {}",
-        "compiling".green().bold(),
-        file.display().to_string().dimmed()
-    );
 
-    // Lexer → Parser → Type Check → Codegen → Execute
+    // Lexer
     let tokens = nova_compiler::lexer::tokenize(&source)?;
+
+    // Parser
     let ast = nova_compiler::parser::parse(tokens)?;
 
     // Type check
-    let result = nova_compiler::typechecker::check(&ast);
-
-    if !result.errors.is_empty() {
-        for err in &result.errors {
-            eprintln!(
-                "  {} {}",
-                "✗".red().bold(),
-                err
-            );
+    let check_result = nova_compiler::typechecker::check(&ast);
+    if !check_result.errors.is_empty() {
+        for err in &check_result.errors {
+            eprintln!("  {} {}", "✗".red().bold(), err);
         }
-        return Err(format!("found {} type error(s)", result.errors.len()).into());
+        return Err(format!("found {} type error(s)", check_result.errors.len()).into());
     }
 
-    println!(
-        "{} type-checked {} statement(s) successfully",
-        "✓".green().bold(),
-        ast.statements.len()
-    );
+    // Execute
+    let output = nova_compiler::interpreter::run(&ast).map_err(|e| {
+        format!("{}", e)
+    })?;
 
-    // TODO: Type checking, codegen, execution
-    println!(
-        "{}",
-        "note: execution not yet implemented — compiler frontend only"
-            .yellow()
-            .dimmed()
-    );
+    // Print output
+    for line in &output {
+        println!("{line}");
+    }
 
     Ok(())
 }

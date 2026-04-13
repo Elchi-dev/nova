@@ -153,6 +153,7 @@ nova/
 │   │   ├── parser/          #   Tokens → AST (recursive descent)
 │   │   ├── ast/             #   Node definitions for all constructs
 │   │   ├── typechecker/     #   Static type inference & checking
+│   │   ├── interpreter/     #   Tree-walking interpreter (nova run)
 │   │   ├── semantic/        #   Escape analysis, effects, module splitting
 │   │   └── codegen/         #   AST → LLVM IR → machine code
 │   └── nova-runtime/        # Runtime support
@@ -183,7 +184,7 @@ See [ROADMAP.md](ROADMAP.md) for the full technical discussion.
 
 ## Status
 
-Nova is in **pre-alpha**. The compiler frontend (lexer, parser, AST) is functional, the type checker with Hindley-Milner inference is operational, the arena memory system is implemented, and the module manager is in place. `nova check` performs full type checking. Active work is on LLVM codegen.
+Nova is in **pre-alpha**. `nova run` executes programs end-to-end (lex → parse → type-check → interpret). The type checker with Hindley-Milner inference is operational, the arena memory system is implemented, and the module manager is in place. Active work is on LLVM codegen for `nova build`.
 
 See the [Roadmap](ROADMAP.md) for detailed progress on every feature.
 

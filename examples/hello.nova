@@ -1,0 +1,17 @@
+# Hello World — your first Nova program
+
+fn main():
+    print("Hello, World!")
+    print("Welcome to Nova.")
+
+    let name = "Developer"
+    print("Hello, " + name + "!")
+
+    # Some math
+    let result = [1, 2, 3, 4, 5]
+        |> filter(x => x > 2)
+        |> map(x => x * 10)
+        |> sort
+
+    print(result)
+    print("Sum: " + str([1, 2, 3, 4, 5] |> sum))

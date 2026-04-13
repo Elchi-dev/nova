@@ -636,7 +636,7 @@ impl Parser {
     }
 
     fn parse_multiplication(&mut self) -> Result<Expression, Box<dyn std::error::Error>> {
-        let mut left = self.parse_unary()?;
+        let mut left = self.parse_power()?;
 
         loop {
             let op = match self.current_kind() {
@@ -647,7 +647,7 @@ impl Parser {
                 _ => break,
             };
             self.advance();
-            let right = self.parse_unary()?;
+            let right = self.parse_power()?;
             left = Expression::BinaryOp {
                 left: Box::new(left),
                 op,
@@ -656,6 +656,23 @@ impl Parser {
         }
 
         Ok(left)
+    }
+
+    fn parse_power(&mut self) -> Result<Expression, Box<dyn std::error::Error>> {
+        let base = self.parse_unary()?;
+
+        // ** is right-associative: 2 ** 3 ** 2 = 2 ** (3 ** 2)
+        if self.at(TokenKind::Power) {
+            self.advance();
+            let exponent = self.parse_power()?; // right-recursive for right-associativity
+            Ok(Expression::BinaryOp {
+                left: Box::new(base),
+                op: BinaryOperator::Power,
+                right: Box::new(exponent),
+            })
+        } else {
+            Ok(base)
+        }
     }
 
     fn parse_unary(&mut self) -> Result<Expression, Box<dyn std::error::Error>> {

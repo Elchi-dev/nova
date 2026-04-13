@@ -1,0 +1,11 @@
+# Fibonacci — recursive function demo
+
+fn fib(n: int) -> int:
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+fn main():
+    print("Fibonacci sequence:")
+    for i in range(12):
+        print("  fib(" + str(i) + ") = " + str(fib(i)))
