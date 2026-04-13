@@ -128,7 +128,8 @@ cargo build --release
 ### CLI
 
 ```bash
-nova run file.nova        # Compile and execute
+nova run file.nova        # Compile and execute (.nova or .nv)
+nova run script.nv        # Short extension also works
 nova build                # Compile to native binary
 nova build --release      # Fully optimized (LLVM)
 nova check                # Type-check + lint

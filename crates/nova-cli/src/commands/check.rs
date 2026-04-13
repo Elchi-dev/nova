@@ -3,12 +3,15 @@ use std::path::PathBuf;
 
 pub fn execute(path: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let file = if path.is_dir() {
-        // Look for main.nova in directory
-        let main = path.join("main.nova");
-        if main.exists() {
-            main
+        // Look for main.nova or main.nv in directory
+        let main_nova = path.join("main.nova");
+        let main_nv = path.join("main.nv");
+        if main_nova.exists() {
+            main_nova
+        } else if main_nv.exists() {
+            main_nv
         } else {
-            return Err("no main.nova found in directory".into());
+            return Err("no main.nova or main.nv found in directory".into());
         }
     } else {
         path.clone()

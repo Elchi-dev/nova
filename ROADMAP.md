@@ -153,15 +153,44 @@ The foundation is in place: a working lexer, parser, AST, type checker with Hind
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| `std.io` | 🔲 Todo | File I/O, stdin/stdout |
-| `std.net` | 🔲 Todo | TCP/UDP, HTTP client |
+| `std.io` | 🔲 Todo | File I/O, stdin/stdout, stderr |
+| `std.fs` | 🔲 Todo | Filesystem operations: read, write, mkdir, walk, glob |
+| `std.net` | 🔲 Todo | TCP/UDP sockets, HTTP client |
+| `std.http` | 🔲 Todo | HTTP server, request/response, routing |
 | `std.json` | 🔲 Todo | JSON parsing and serialization |
-| `std.collections` | 🔲 Todo | HashMap, Set, Queue, Stack |
-| `std.math` | 🔲 Todo | Math functions, constants |
-| `std.time` | 🔲 Todo | Timestamps, durations, formatting |
+| `std.csv` | 🔲 Todo | CSV reading and writing |
+| `std.collections` | 🔲 Todo | HashMap, Set, Queue, Stack, Deque |
+| `std.math` | 🔲 Todo | Math functions, constants, trigonometry |
+| `std.random` | 🔲 Todo | Random number generation, shuffling |
+| `std.time` | 🔲 Todo | Timestamps, durations, formatting, sleep |
 | `std.fmt` | 🔲 Todo | String formatting, f-string runtime |
+| `std.regex` | 🔲 Todo | Regular expressions |
+| `std.os` | 🔲 Todo | Environment variables, process spawning, signals |
+| `std.path` | 🔲 Todo | Cross-platform path manipulation |
 | `std.test` | 🔲 Todo | Test framework, assertions, benchmarks |
-| `std.crypto` | 🔲 Planned | Hashing, encryption (later) |
+| `std.log` | 🔲 Todo | Structured logging with levels |
+| `std.crypto` | 🔲 Planned | Hashing (SHA, Blake3), HMAC, encryption |
+| `std.encoding` | 🔲 Planned | Base64, hex, URL encoding |
+| `std.args` | 🔲 Planned | CLI argument parsing |
+
+---
+
+## Phase 9 — Ecosystem & Editor Support (v0.9.0)
+
+*Goal: First-class developer experience in popular editors and a growing ecosystem.*
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| VSCode extension | 🔲 Planned | Syntax highlighting, bracket matching, file icons |
+| VSCode LSP integration | 🔲 Planned | Autocomplete, go-to-definition, hover types, inline errors |
+| Treesitter grammar | 🔲 Planned | Syntax highlighting for Neovim, Helix, Zed, etc. |
+| Syntax theme colors | 🔲 Planned | Custom token colors tuned for Nova keywords and operators |
+| `.nova` and `.nv` file association | 🔲 Planned | Both extensions recognized across all tooling |
+| Package registry (`nova.pkg`) | 🔲 Planned | Central package registry for community libraries |
+| `nova mod publish` | 🔲 Planned | Publish packages to the registry |
+| Playground (web) | 🔲 Planned | Try Nova in the browser (WASM-based interpreter) |
+| Starter templates | 🔲 Planned | `nova init --template web/cli/lib` scaffolding |
+| CI/CD integration | 🔲 Planned | GitHub Actions for Nova projects |
 
 ---
 
@@ -222,14 +251,16 @@ These are hard problems identified during design. Each one has a planned approac
 
 | Version | Target | Milestone |
 |---------|--------|-----------|
-| v0.1.0 | Q2 2026 | Parser + type checker complete, `nova check` works |
+| v0.1.0 | ~~Q2 2026~~ ✅ | Parser + type checker complete, `nova check` works |
+| v0.1.1 | ~~Q2 2026~~ ✅ | Tree-walking interpreter, `nova run` executes programs |
 | v0.2.0 | Q3 2026 | Semantic analysis, escape analysis, effect system |
-| v0.3.0 | Q4 2026 | Code generation, first programs compile and run |
+| v0.3.0 | Q4 2026 | LLVM code generation, `nova build` produces binaries |
 | v0.4.0 | Q1 2027 | Hot-reloading works end-to-end |
 | v0.5.0 | Q2 2027 | C interop functional |
 | v0.6.0 | Q3 2027 | CLI tools complete, LSP server |
 | v0.7.0 | Q4 2027 | Structured concurrency |
-| v0.8.0 | Q1 2028 | Standard library, ready for early adopters |
+| v0.8.0 | Q1 2028 | Standard library |
+| v0.9.0 | Q2 2028 | VSCode extension, ecosystem tooling, package registry |
 | v1.0.0 | 2028 | Stable release |
 
 ---

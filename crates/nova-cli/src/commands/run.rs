@@ -7,8 +7,8 @@ pub fn execute(file: PathBuf, _args: Vec<String>) -> Result<(), Box<dyn std::err
     }
 
     let ext = file.extension().and_then(|e| e.to_str()).unwrap_or("");
-    if ext != "nova" {
-        return Err(format!("expected a .nova file, got .{ext}").into());
+    if ext != "nova" && ext != "nv" {
+        return Err(format!("expected a .nova or .nv file, got .{ext}").into());
     }
 
     let source = std::fs::read_to_string(&file)?;
