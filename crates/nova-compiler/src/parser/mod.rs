@@ -75,6 +75,43 @@ impl Parser {
         self.current_kind() == kind
     }
 
+    /// Peek past newlines/comments to check if a continuation operator follows.
+    /// Returns the index of the continuation operator, or None.
+    fn peek_past_newlines(&self) -> Option<TokenKind> {
+        let mut i = self.pos;
+        while i < self.tokens.len() {
+            let kind = self.tokens[i].kind;
+            if kind == TokenKind::Newline || kind == TokenKind::Comment {
+                i += 1;
+                continue;
+            }
+            return Some(kind);
+        }
+        None
+    }
+
+    /// Skip newlines if the next non-newline token is a continuation operator.
+    fn skip_newlines_if_continuation(&mut self) {
+        let next = self.peek_past_newlines();
+        if matches!(
+            next,
+            Some(TokenKind::Pipe)
+                | Some(TokenKind::Plus)
+                | Some(TokenKind::Minus)
+                | Some(TokenKind::Star)
+                | Some(TokenKind::Slash)
+                | Some(TokenKind::And)
+                | Some(TokenKind::Or)
+                | Some(TokenKind::Dot)
+        ) {
+            while self.current_kind() == TokenKind::Newline
+                || self.current_kind() == TokenKind::Comment
+            {
+                self.advance();
+            }
+        }
+    }
+
     // ── Top-level parsing ────────────────────────────────────
 
     pub fn parse_program(&mut self) -> Result<Program, Box<dyn std::error::Error>> {
@@ -543,13 +580,23 @@ impl Parser {
     fn parse_pipe(&mut self) -> Result<Expression, Box<dyn std::error::Error>> {
         let mut left = self.parse_or()?;
 
+        // Allow pipe continuation across newlines
+        self.skip_newlines_if_continuation();
+
         while self.at(TokenKind::Pipe) {
             self.advance();
+            // Skip any newlines/comments after the pipe operator
+            while self.current_kind() == TokenKind::Newline
+                || self.current_kind() == TokenKind::Comment
+            {
+                self.advance();
+            }
             let right = self.parse_or()?;
             left = Expression::Pipe {
                 left: Box::new(left),
                 right: Box::new(right),
             };
+            self.skip_newlines_if_continuation();
         }
 
         Ok(left)

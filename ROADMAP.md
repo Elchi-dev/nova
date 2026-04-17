@@ -9,7 +9,7 @@ This roadmap tracks every feature of the Nova programming language — what's do
 
 ## Current Status: v0.1.0-dev
 
-The foundation is in place: a working lexer, parser, AST, type checker with Hindley-Milner inference, tree-walking interpreter, arena memory allocator, and module hot-reload manager. `nova run` executes programs end-to-end. `nova check` performs full type checking. The CLI supports all planned commands.
+The full developer workflow is now in place: `nova init` scaffolds projects, `nova run` executes them, `nova check` type-checks, `nova fmt` formats, `nova test` runs tests, and `nova repl` provides interactive exploration. Under the hood: working lexer with line continuation, parser, AST, type checker with Hindley-Milner inference, tree-walking interpreter, arena memory allocator, and module hot-reload manager. Active work is on LLVM codegen for `nova build`.
 
 ---
 
@@ -20,6 +20,7 @@ The foundation is in place: a working lexer, parser, AST, type checker with Hind
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Lexer with indentation tracking | ✅ Done | Logos-based, emits Indent/Dedent tokens |
+| Line continuation | ✅ Done | Multi-line expressions in brackets and after operators (`\|>`, `+`, etc.) |
 | Token set (all operators, keywords) | ✅ Done | Including `\|>`, `=>`, `@`, effect brackets |
 | Recursive descent parser | ✅ Done | Handles functions, structs, enums, traits, impl blocks |
 | AST definitions | ✅ Done | Full node types for all language constructs |
@@ -121,11 +122,11 @@ The foundation is in place: a working lexer, parser, AST, type checker with Hind
 | `nova run` | ✅ Done | Lex → parse → type-check → execute (tree-walking interpreter) |
 | `nova build` | 🔲 Stub | Needs codegen (Phase 3) |
 | `nova check` | ✅ Done | Full pipeline: lex → parse → type-check with error reporting |
-| `nova fmt` | 🔲 Todo | AST-based formatter, opinionated style |
-| `nova test` | 🔲 Stub | Test discovery, runner, assertions |
+| `nova fmt` | ✅ Done | AST-based formatter, walks directories, `--check` mode |
+| `nova test` | ✅ Done | Auto-discovers `test_*` functions, runs with timing, filter support |
 | `nova doc` | 🔲 Stub | Generate HTML docs from doc comments |
-| `nova repl` | 🔲 Stub | Interactive evaluation, needs interpreter |
-| `nova init` | 🔲 Stub | Project scaffolding with templates |
+| `nova repl` | ✅ Done | Interactive REPL with multi-line blocks, `:help`, `:clear`, persistent env |
+| `nova init` | ✅ Done | Project scaffolding: `nova.toml`, `src/`, `tests/`, README, `.gitignore` |
 | `nova mod add/remove/update` | 🔲 Stub | Package registry and dependency resolution |
 | LSP server | 🔲 Planned | Editor support for VS Code, Neovim, etc. |
 | `nova build --explain` | 🔲 Planned | Show semantic optimizations applied |

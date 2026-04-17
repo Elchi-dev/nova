@@ -54,6 +54,7 @@ impl Checker {
         self.errors.push(err);
     }
 
+    #[allow(dead_code)]
     fn warn(&mut self, msg: impl Into<String>) {
         self.warnings.push(msg.into());
     }

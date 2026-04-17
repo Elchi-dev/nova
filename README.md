@@ -130,15 +130,15 @@ cargo build --release
 ```bash
 nova run file.nova        # Compile and execute (.nova or .nv)
 nova run script.nv        # Short extension also works
-nova build                # Compile to native binary
-nova build --release      # Fully optimized (LLVM)
 nova check                # Type-check + lint
-nova fmt                  # Format source code
-nova test                 # Run test suite
-nova doc                  # Generate documentation
-nova repl                 # Interactive REPL
-nova init my_project      # Scaffold new project
-nova mod add package      # Add dependency
+nova fmt                  # Format source code (AST-based)
+nova fmt --check          # Check formatting without writing
+nova test                 # Auto-discover and run test_* functions
+nova repl                 # Interactive REPL with persistent state
+nova init my_project      # Scaffold new project with nova.toml, src/, tests/
+nova init my_lib --lib    # Scaffold a library project
+nova build                # Compile to native binary (in development)
+nova mod add package      # Add dependency (in development)
 ```
 
 ---
@@ -185,7 +185,7 @@ See [ROADMAP.md](ROADMAP.md) for the full technical discussion.
 
 ## Status
 
-Nova is in **pre-alpha**. `nova run` executes programs end-to-end (lex → parse → type-check → interpret). The type checker with Hindley-Milner inference is operational, the arena memory system is implemented, and the module manager is in place. Active work is on LLVM codegen for `nova build`.
+Nova is in **pre-alpha**. The full developer workflow is in place — `nova init` scaffolds projects, `nova run` executes them, `nova check` type-checks, `nova fmt` formats, `nova test` runs tests, and `nova repl` provides interactive exploration. The type checker, tree-walking interpreter, arena memory system, and module manager are all operational. Active work is on LLVM codegen for `nova build`.
 
 See the [Roadmap](ROADMAP.md) for detailed progress on every feature.
 

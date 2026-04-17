@@ -173,6 +173,7 @@ impl TypeEnv {
         }
     }
 
+    #[allow(dead_code)]
     fn current_scope(&self) -> &Scope {
         self.scopes.last().expect("scope stack empty")
     }

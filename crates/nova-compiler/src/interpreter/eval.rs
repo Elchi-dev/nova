@@ -1081,6 +1081,41 @@ impl Interpreter {
             ))),
         }
     }
+
+    // ── REPL support ─────────────────────────────────────────
+
+    /// Execute a single line/block for the REPL.
+    /// Returns the last expression value (if any) for display.
+    pub fn execute_repl(&mut self, program: &Program) -> Result<Option<Value>, RuntimeError> {
+        // Register any new declarations
+        for stmt in &program.statements {
+            self.register_declaration(stmt);
+        }
+
+        // Execute statements, track the last expression value
+        let mut last_value = None;
+
+        for stmt in &program.statements {
+            match stmt {
+                Statement::FunctionDef { .. }
+                | Statement::StructDef { .. }
+                | Statement::EnumDef { .. }
+                | Statement::TraitDef { .. }
+                | Statement::ImplBlock { .. } => {}
+                Statement::Expression(_) => {
+                    let val = self.exec_statement(stmt)?;
+                    if !matches!(val, Value::None) {
+                        last_value = Some(val);
+                    }
+                }
+                _ => {
+                    self.exec_statement(stmt)?;
+                }
+            }
+        }
+
+        Ok(last_value)
+    }
 }
 
 impl Default for Interpreter {
