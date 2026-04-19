@@ -16,6 +16,7 @@ pub enum Statement {
         body: Block,
         decorators: Vec<Decorator>,
         is_pub: bool,
+        doc_comment: Option<String>,
     },
 
     /// `struct Name:`
@@ -23,6 +24,7 @@ pub enum Statement {
         name: String,
         fields: Vec<Field>,
         is_pub: bool,
+        doc_comment: Option<String>,
     },
 
     /// `enum Name:`
@@ -30,6 +32,7 @@ pub enum Statement {
         name: String,
         variants: Vec<EnumVariant>,
         is_pub: bool,
+        doc_comment: Option<String>,
     },
 
     /// `trait Name:`
@@ -37,6 +40,7 @@ pub enum Statement {
         name: String,
         methods: Vec<TraitMethod>,
         is_pub: bool,
+        doc_comment: Option<String>,
     },
 
     /// `impl Trait for Type:`
@@ -90,10 +94,7 @@ pub enum Statement {
     },
 
     /// `while condition:`
-    WhileLoop {
-        condition: Expression,
-        body: Block,
-    },
+    WhileLoop { condition: Expression, body: Block },
 
     /// `match value:`
     Match {

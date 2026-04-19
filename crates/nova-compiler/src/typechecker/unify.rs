@@ -114,10 +114,10 @@ fn resolve(ty: &Type, subst: &Substitution) -> Type {
 /// Bind a type variable to a type, with occurs check.
 fn bind(var_id: TypeVarId, ty: &Type, subst: &mut Substitution) -> Result<(), TypeError> {
     // Don't bind a variable to itself
-    if let Type::Var(id) = ty {
-        if *id == var_id {
-            return Ok(());
-        }
+    if let Type::Var(id) = ty
+        && *id == var_id
+    {
+        return Ok(());
     }
 
     // Occurs check: prevent infinite types like T = List[T]
@@ -154,10 +154,7 @@ fn occurs(var_id: TypeVarId, ty: &Type, subst: &Substitution) -> bool {
             params,
             return_type,
             ..
-        } => {
-            params.iter().any(|p| occurs(var_id, p, subst))
-                || occurs(var_id, return_type, subst)
-        }
+        } => params.iter().any(|p| occurs(var_id, p, subst)) || occurs(var_id, return_type, subst),
         _ => false,
     }
 }

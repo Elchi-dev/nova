@@ -1,4 +1,5 @@
 <p align="center">
+  <a href="https://github.com/Elchi-dev/nova/actions/workflows/ci.yml"><img src="https://github.com/Elchi-dev/nova/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/status-pre--alpha-orange" alt="Status">
   <img src="https://img.shields.io/badge/language-Rust-B7410E" alt="Language">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
@@ -129,11 +130,14 @@ cargo build --release
 
 ```bash
 nova run file.nova        # Compile and execute (.nova or .nv)
+nova run file.nova --watch # Re-run automatically on file changes
 nova run script.nv        # Short extension also works
 nova check                # Type-check + lint
 nova fmt                  # Format source code (AST-based)
 nova fmt --check          # Check formatting without writing
 nova test                 # Auto-discover and run test_* functions
+nova doc examples/        # Generate HTML documentation from ## doc comments
+nova doc --open examples/ # Generate and open in browser
 nova repl                 # Interactive REPL with persistent state
 nova init my_project      # Scaffold new project with nova.toml, src/, tests/
 nova init my_lib --lib    # Scaffold a library project

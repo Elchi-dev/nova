@@ -193,6 +193,7 @@ pub enum TokenKind {
     Dedent,
     Newline,
     Comment,
+    DocComment,
     Eof,
 }
 

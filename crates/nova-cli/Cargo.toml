@@ -16,3 +16,4 @@ nova-runtime = { workspace = true }
 clap = { workspace = true }
 miette = { workspace = true }
 colored = { workspace = true }
+notify = "7"

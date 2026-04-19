@@ -85,8 +85,7 @@ impl Checker {
                     .map(|t| self.env.resolve_type_expr(t))
                     .unwrap_or(Type::None);
 
-                let effect_list: Vec<Effect> =
-                    effects.iter().map(|e| Effect::from_str(e)).collect();
+                let effect_list: Vec<Effect> = effects.iter().map(|e| Effect::parse(e)).collect();
 
                 let is_pure = decorators.iter().any(|d| d.name == "pure");
 
@@ -103,6 +102,7 @@ impl Checker {
                 name,
                 fields,
                 is_pub,
+                ..
             } => {
                 let field_types: Vec<(String, Type)> = fields
                     .iter()
@@ -142,8 +142,7 @@ impl Checker {
                     .map(|t| self.env.resolve_type_expr(t))
                     .unwrap_or(Type::None);
 
-                let effect_list: Vec<Effect> =
-                    effects.iter().map(|e| Effect::from_str(e)).collect();
+                let effect_list: Vec<Effect> = effects.iter().map(|e| Effect::parse(e)).collect();
 
                 let is_pure = decorators.iter().any(|d| d.name == "pure");
 
@@ -213,14 +212,10 @@ impl Checker {
                 if let Expression::Identifier(name) = target {
                     match self.env.is_mutable(name) {
                         Some(false) => {
-                            self.error(TypeError::ImmutableAssignment {
-                                name: name.clone(),
-                            });
+                            self.error(TypeError::ImmutableAssignment { name: name.clone() });
                         }
                         None => {
-                            self.error(TypeError::UndefinedVariable {
-                                name: name.clone(),
-                            });
+                            self.error(TypeError::UndefinedVariable { name: name.clone() });
                         }
                         _ => {}
                     }
@@ -238,7 +233,7 @@ impl Checker {
                 else_body,
             } => {
                 let cond_ty = self.infer_expression(condition);
-                if let Err(_) = unify::unify(&Type::Bool, &cond_ty, &mut self.subst) {
+                if unify::unify(&Type::Bool, &cond_ty, &mut self.subst).is_err() {
                     self.error(TypeError::NonBoolCondition { found: cond_ty });
                 }
 
@@ -250,7 +245,7 @@ impl Checker {
 
                 for (elif_cond, elif_body) in elif_clauses {
                     let elif_ty = self.infer_expression(elif_cond);
-                    if let Err(_) = unify::unify(&Type::Bool, &elif_ty, &mut self.subst) {
+                    if unify::unify(&Type::Bool, &elif_ty, &mut self.subst).is_err() {
                         self.error(TypeError::NonBoolCondition { found: elif_ty });
                     }
                     self.env.push_scope();
@@ -271,7 +266,7 @@ impl Checker {
 
             Statement::WhileLoop { condition, body } => {
                 let cond_ty = self.infer_expression(condition);
-                if let Err(_) = unify::unify(&Type::Bool, &cond_ty, &mut self.subst) {
+                if unify::unify(&Type::Bool, &cond_ty, &mut self.subst).is_err() {
                     self.error(TypeError::NonBoolCondition { found: cond_ty });
                 }
 
@@ -317,10 +312,10 @@ impl Checker {
                     Type::None
                 };
 
-                if let Some(expected) = self.env.expected_return_type().cloned() {
-                    if let Err(e) = unify::unify(&expected, &return_ty, &mut self.subst) {
-                        self.error(e);
-                    }
+                if let Some(expected) = self.env.expected_return_type().cloned()
+                    && let Err(e) = unify::unify(&expected, &return_ty, &mut self.subst)
+                {
+                    self.error(e);
                 }
             }
 
@@ -373,9 +368,7 @@ impl Checker {
                         effects: sig.effects.clone(),
                     }
                 } else {
-                    self.error(TypeError::UndefinedVariable {
-                        name: name.clone(),
-                    });
+                    self.error(TypeError::UndefinedVariable { name: name.clone() });
                     Type::Error
                 }
             }
@@ -400,10 +393,8 @@ impl Checker {
                         }
                     }
                     UnaryOperator::Not => {
-                        if let Err(_) = unify::unify(&Type::Bool, &operand_ty, &mut self.subst) {
-                            self.error(TypeError::NonBoolCondition {
-                                found: operand_ty,
-                            });
+                        if unify::unify(&Type::Bool, &operand_ty, &mut self.subst).is_err() {
+                            self.error(TypeError::NonBoolCondition { found: operand_ty });
                         }
                         Type::Bool
                     }
@@ -412,8 +403,7 @@ impl Checker {
 
             Expression::Call { function, args } => {
                 let func_ty = self.infer_expression(function);
-                let arg_types: Vec<Type> =
-                    args.iter().map(|a| self.infer_expression(a)).collect();
+                let arg_types: Vec<Type> = args.iter().map(|a| self.infer_expression(a)).collect();
 
                 match &func_ty {
                     Type::Function {
@@ -436,9 +426,7 @@ impl Checker {
                         } else {
                             // Unify each argument with its parameter
                             for (param_ty, arg_ty) in params.iter().zip(arg_types.iter()) {
-                                if let Err(e) =
-                                    unify::unify(param_ty, arg_ty, &mut self.subst)
-                                {
+                                if let Err(e) = unify::unify(param_ty, arg_ty, &mut self.subst) {
                                     self.error(e);
                                 }
                             }
@@ -483,8 +471,7 @@ impl Checker {
                 let obj_ty = self.infer_expression(object);
                 match &obj_ty {
                     Type::Struct(s) => {
-                        if let Some((_, field_ty)) =
-                            s.fields.iter().find(|(name, _)| name == field)
+                        if let Some((_, field_ty)) = s.fields.iter().find(|(name, _)| name == field)
                         {
                             field_ty.clone()
                         } else {
@@ -512,8 +499,7 @@ impl Checker {
                 args,
             } => {
                 let obj_ty = self.infer_expression(object);
-                let _arg_types: Vec<Type> =
-                    args.iter().map(|a| self.infer_expression(a)).collect();
+                let _arg_types: Vec<Type> = args.iter().map(|a| self.infer_expression(a)).collect();
 
                 // Built-in methods on common types
                 match (&obj_ty, method.as_str()) {
@@ -558,9 +544,7 @@ impl Checker {
                     }
                     Type::Error => Type::Error,
                     _ => {
-                        self.error(TypeError::NotIndexable {
-                            ty: obj_ty.clone(),
-                        });
+                        self.error(TypeError::NotIndexable { ty: obj_ty.clone() });
                         Type::Error
                     }
                 }
@@ -573,10 +557,7 @@ impl Checker {
                 let func_ty = self.infer_expression(right);
 
                 match &func_ty {
-                    Type::Function {
-                        return_type,
-                        ..
-                    } => *return_type.clone(),
+                    Type::Function { return_type, .. } => *return_type.clone(),
                     _ => {
                         // Treat as function call with input as arg
                         let ret = Type::fresh_var();
@@ -655,10 +636,8 @@ impl Checker {
                         // Check each provided field
                         for (field_name, field_expr) in fields {
                             let field_ty = self.infer_expression(field_expr);
-                            if let Some((_, expected_ty)) = struct_ty
-                                .fields
-                                .iter()
-                                .find(|(n, _)| n == field_name)
+                            if let Some((_, expected_ty)) =
+                                struct_ty.fields.iter().find(|(n, _)| n == field_name)
                             {
                                 if let Err(e) =
                                     unify::unify(expected_ty, &field_ty, &mut self.subst)
@@ -675,9 +654,7 @@ impl Checker {
                     }
                     ty
                 } else {
-                    self.error(TypeError::UndefinedType {
-                        name: name.clone(),
-                    });
+                    self.error(TypeError::UndefinedType { name: name.clone() });
                     Type::Error
                 }
             }
@@ -697,12 +674,7 @@ impl Checker {
 
     // ── Binary operator type checking ────────────────────────
 
-    fn check_binary_op(
-        &mut self,
-        left: &Type,
-        op: BinaryOperator,
-        right: &Type,
-    ) -> Type {
+    fn check_binary_op(&mut self, left: &Type, op: BinaryOperator, right: &Type) -> Type {
         match op {
             // Arithmetic: numeric × numeric → numeric
             BinaryOperator::Add
@@ -777,12 +749,12 @@ impl Checker {
 
             // Logical: bool × bool → bool
             BinaryOperator::And | BinaryOperator::Or => {
-                if let Err(_) = unify::unify(&Type::Bool, left, &mut self.subst) {
+                if unify::unify(&Type::Bool, left, &mut self.subst).is_err() {
                     self.error(TypeError::NonBoolCondition {
                         found: left.clone(),
                     });
                 }
-                if let Err(_) = unify::unify(&Type::Bool, right, &mut self.subst) {
+                if unify::unify(&Type::Bool, right, &mut self.subst).is_err() {
                     self.error(TypeError::NonBoolCondition {
                         found: right.clone(),
                     });

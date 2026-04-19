@@ -19,7 +19,7 @@
 //   - ~5% escaping objects: lightweight refcount
 //   - No GC pauses, no borrow checker complexity
 
-use std::alloc::{alloc, dealloc, Layout};
+use std::alloc::{Layout, alloc, dealloc};
 use std::ptr::NonNull;
 
 /// A memory arena that provides bump allocation.

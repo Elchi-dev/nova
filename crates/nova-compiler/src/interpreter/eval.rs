@@ -47,10 +47,10 @@ impl Interpreter {
         }
 
         // If there's a main function, call it
-        if let Some(main_val) = self.env.get("main").cloned() {
-            if let Value::Function(func) = main_val {
-                self.call_function(&func, vec![])?;
-            }
+        if let Some(main_val) = self.env.get("main").cloned()
+            && let Value::Function(func) = main_val
+        {
+            self.call_function(&func, vec![])?;
         }
 
         Ok(())
@@ -92,9 +92,7 @@ impl Interpreter {
             Value::Function(NovaFunction::Builtin {
                 name: "range".to_string(),
                 func: |args| match args.as_slice() {
-                    [Value::Int(n)] => {
-                        Ok(Value::List((0..*n).map(Value::Int).collect()))
-                    }
+                    [Value::Int(n)] => Ok(Value::List((0..*n).map(Value::Int).collect())),
                     [Value::Int(start), Value::Int(end)] => {
                         Ok(Value::List((*start..*end).map(Value::Int).collect()))
                     }
@@ -131,9 +129,7 @@ impl Interpreter {
                     Some(Value::Str(_)) => Ok(Value::Str("str".to_string())),
                     Some(Value::List(_)) => Ok(Value::Str("list".to_string())),
                     Some(Value::Dict(_)) => Ok(Value::Str("dict".to_string())),
-                    Some(Value::Struct { type_name, .. }) => {
-                        Ok(Value::Str(type_name.clone()))
-                    }
+                    Some(Value::Struct { type_name, .. }) => Ok(Value::Str(type_name.clone())),
                     Some(Value::Function(_)) => Ok(Value::Str("function".to_string())),
                     Some(Value::None) => Ok(Value::Str("none".to_string())),
                     _ => Ok(Value::Str("unknown".to_string())),
@@ -166,14 +162,20 @@ impl Interpreter {
                 func: |args| match args.as_slice() {
                     [Value::Int(a), Value::Int(b)] => Ok(Value::Int(*a.min(b))),
                     [Value::Float(a), Value::Float(b)] => Ok(Value::Float(a.min(*b))),
-                    [Value::List(items)] => {
-                        items.iter().cloned().reduce(|a, b| {
-                            match (&a, &b) {
-                                (Value::Int(x), Value::Int(y)) => if x < y { a } else { b },
-                                _ => a,
+                    [Value::List(items)] => items
+                        .iter()
+                        .cloned()
+                        .reduce(|a, b| match (&a, &b) {
+                            (Value::Int(x), Value::Int(y)) => {
+                                if x < y {
+                                    a
+                                } else {
+                                    b
+                                }
                             }
-                        }).ok_or(RuntimeError::Error("min() of empty list".to_string()))
-                    }
+                            _ => a,
+                        })
+                        .ok_or(RuntimeError::Error("min() of empty list".to_string())),
                     _ => Err(RuntimeError::TypeError {
                         message: "min() requires numbers or a list".to_string(),
                     }),
@@ -189,14 +191,20 @@ impl Interpreter {
                 func: |args| match args.as_slice() {
                     [Value::Int(a), Value::Int(b)] => Ok(Value::Int(*a.max(b))),
                     [Value::Float(a), Value::Float(b)] => Ok(Value::Float(a.max(*b))),
-                    [Value::List(items)] => {
-                        items.iter().cloned().reduce(|a, b| {
-                            match (&a, &b) {
-                                (Value::Int(x), Value::Int(y)) => if x > y { a } else { b },
-                                _ => a,
+                    [Value::List(items)] => items
+                        .iter()
+                        .cloned()
+                        .reduce(|a, b| match (&a, &b) {
+                            (Value::Int(x), Value::Int(y)) => {
+                                if x > y {
+                                    a
+                                } else {
+                                    b
+                                }
                             }
-                        }).ok_or(RuntimeError::Error("max() of empty list".to_string()))
-                    }
+                            _ => a,
+                        })
+                        .ok_or(RuntimeError::Error("max() of empty list".to_string())),
                     _ => Err(RuntimeError::TypeError {
                         message: "max() requires numbers or a list".to_string(),
                     }),
@@ -219,7 +227,7 @@ impl Interpreter {
                                 _ => {
                                     return Err(RuntimeError::TypeError {
                                         message: "sum() requires a list of numbers".to_string(),
-                                    })
+                                    });
                                 }
                             }
                         }
@@ -234,52 +242,66 @@ impl Interpreter {
         );
 
         // filter
-        self.env.define("filter", Value::Function(NovaFunction::Builtin {
-            name: "filter".to_string(),
-            func: |_| Ok(Value::None), // handled specially in pipe evaluation
-        }), false);
+        self.env.define(
+            "filter",
+            Value::Function(NovaFunction::Builtin {
+                name: "filter".to_string(),
+                func: |_| Ok(Value::None), // handled specially in pipe evaluation
+            }),
+            false,
+        );
 
         // map
-        self.env.define("map", Value::Function(NovaFunction::Builtin {
-            name: "map".to_string(),
-            func: |_| Ok(Value::None), // handled specially in pipe evaluation
-        }), false);
+        self.env.define(
+            "map",
+            Value::Function(NovaFunction::Builtin {
+                name: "map".to_string(),
+                func: |_| Ok(Value::None), // handled specially in pipe evaluation
+            }),
+            false,
+        );
 
         // sort
-        self.env.define("sort", Value::Function(NovaFunction::Builtin {
-            name: "sort".to_string(),
-            func: |args| match args.first() {
-                Some(Value::List(items)) => {
-                    let mut sorted = items.clone();
-                    sorted.sort_by(|a, b| {
-                        match (a, b) {
+        self.env.define(
+            "sort",
+            Value::Function(NovaFunction::Builtin {
+                name: "sort".to_string(),
+                func: |args| match args.first() {
+                    Some(Value::List(items)) => {
+                        let mut sorted = items.clone();
+                        sorted.sort_by(|a, b| match (a, b) {
                             (Value::Int(x), Value::Int(y)) => x.cmp(y),
                             (Value::Str(x), Value::Str(y)) => x.cmp(y),
                             _ => std::cmp::Ordering::Equal,
-                        }
-                    });
-                    Ok(Value::List(sorted))
-                }
-                _ => Err(RuntimeError::TypeError {
-                    message: "sort() requires a list".to_string(),
-                }),
-            },
-        }), false);
+                        });
+                        Ok(Value::List(sorted))
+                    }
+                    _ => Err(RuntimeError::TypeError {
+                        message: "sort() requires a list".to_string(),
+                    }),
+                },
+            }),
+            false,
+        );
 
         // reverse
-        self.env.define("reverse", Value::Function(NovaFunction::Builtin {
-            name: "reverse".to_string(),
-            func: |args| match args.first() {
-                Some(Value::List(items)) => {
-                    let mut reversed = items.clone();
-                    reversed.reverse();
-                    Ok(Value::List(reversed))
-                }
-                _ => Err(RuntimeError::TypeError {
-                    message: "reverse() requires a list".to_string(),
-                }),
-            },
-        }), false);
+        self.env.define(
+            "reverse",
+            Value::Function(NovaFunction::Builtin {
+                name: "reverse".to_string(),
+                func: |args| match args.first() {
+                    Some(Value::List(items)) => {
+                        let mut reversed = items.clone();
+                        reversed.reverse();
+                        Ok(Value::List(reversed))
+                    }
+                    _ => Err(RuntimeError::TypeError {
+                        message: "reverse() requires a list".to_string(),
+                    }),
+                },
+            }),
+            false,
+        );
     }
 
     // ── Declaration registration ─────────────────────────────
@@ -287,10 +309,7 @@ impl Interpreter {
     fn register_declaration(&mut self, stmt: &Statement) {
         match stmt {
             Statement::FunctionDef {
-                name,
-                params,
-                body,
-                ..
+                name, params, body, ..
             } => {
                 let func = Value::Function(NovaFunction::UserDefined {
                     name: name.clone(),
@@ -302,8 +321,7 @@ impl Interpreter {
             }
             Statement::StructDef { name, fields, .. } => {
                 // Register struct as a callable constructor
-                let field_names: Vec<String> =
-                    fields.iter().map(|f| f.name.clone()).collect();
+                let field_names: Vec<String> = fields.iter().map(|f| f.name.clone()).collect();
                 let struct_name = name.clone();
                 self.env.define(
                     name,
@@ -347,34 +365,29 @@ impl Interpreter {
                 let val = self.eval_expression(value)?;
                 match target {
                     Expression::Identifier(name) => {
-                        self.env.set(name, val).map_err(|msg| {
-                            RuntimeError::Error(msg)
-                        })?;
+                        self.env.set(name, val).map_err(RuntimeError::Error)?;
                     }
                     Expression::FieldAccess { object, field } => {
                         // Struct field assignment
-                        if let Expression::Identifier(obj_name) = object.as_ref() {
-                            if let Some(Value::Struct { type_name, fields }) =
+                        if let Expression::Identifier(obj_name) = object.as_ref()
+                            && let Some(Value::Struct { type_name, fields }) =
                                 self.env.get(obj_name).cloned()
-                            {
-                                let mut new_fields = fields;
-                                new_fields.insert(field.clone(), val);
-                                self.env
-                                    .set(
-                                        obj_name,
-                                        Value::Struct {
-                                            type_name,
-                                            fields: new_fields,
-                                        },
-                                    )
-                                    .map_err(|msg| RuntimeError::Error(msg))?;
-                            }
+                        {
+                            let mut new_fields = fields;
+                            new_fields.insert(field.clone(), val);
+                            self.env
+                                .set(
+                                    obj_name,
+                                    Value::Struct {
+                                        type_name,
+                                        fields: new_fields,
+                                    },
+                                )
+                                .map_err(RuntimeError::Error)?;
                         }
                     }
                     _ => {
-                        return Err(RuntimeError::Error(
-                            "invalid assignment target".to_string(),
-                        ));
+                        return Err(RuntimeError::Error("invalid assignment target".to_string()));
                     }
                 }
                 Ok(Value::None)
@@ -433,7 +446,7 @@ impl Interpreter {
                     _ => {
                         return Err(RuntimeError::TypeError {
                             message: "cannot iterate over this type".to_string(),
-                        })
+                        });
                     }
                 };
 
@@ -441,9 +454,7 @@ impl Interpreter {
                 self.env.define(variable, Value::None, true);
 
                 for item in items {
-                    self.env
-                        .set(variable, item)
-                        .map_err(|msg| RuntimeError::Error(msg))?;
+                    self.env.set(variable, item).map_err(RuntimeError::Error)?;
 
                     match self.exec_block(body) {
                         Err(RuntimeError::Break) => break,
@@ -524,11 +535,11 @@ impl Interpreter {
                 Ok(Value::Str(result))
             }
 
-            Expression::Identifier(name) => {
-                self.env.get(name).cloned().ok_or_else(|| {
-                    RuntimeError::Undefined { name: name.clone() }
-                })
-            }
+            Expression::Identifier(name) => self
+                .env
+                .get(name)
+                .cloned()
+                .ok_or_else(|| RuntimeError::Undefined { name: name.clone() }),
 
             Expression::BinaryOp { left, op, right } => {
                 let lval = self.eval_expression(left)?;
@@ -568,19 +579,20 @@ impl Interpreter {
 
             Expression::Call { function, args } => {
                 // Special handling for filter/map with lambda args
-                if let Expression::Identifier(name) = function.as_ref() {
-                    if (name == "filter" || name == "map") && args.len() == 1 {
-                        // These are partially applied — will be resolved in pipe
-                        let arg = self.eval_expression(&args[0])?;
-                        if let Value::Function(inner) = arg {
-                            return Ok(Value::Function(NovaFunction::Partial {
-                                func: Box::new(NovaFunction::Builtin {
-                                    name: name.clone(),
-                                    func: |_| Ok(Value::None),
-                                }),
-                                applied_args: vec![Value::Function(inner)],
-                            }));
-                        }
+                if let Expression::Identifier(name) = function.as_ref()
+                    && (name == "filter" || name == "map")
+                    && args.len() == 1
+                {
+                    // These are partially applied — will be resolved in pipe
+                    let arg = self.eval_expression(&args[0])?;
+                    if let Value::Function(inner) = arg {
+                        return Ok(Value::Function(NovaFunction::Partial {
+                            func: Box::new(NovaFunction::Builtin {
+                                name: name.clone(),
+                                func: |_| Ok(Value::None),
+                            }),
+                            applied_args: vec![Value::Function(inner)],
+                        }));
                     }
                 }
 
@@ -716,41 +728,33 @@ impl Interpreter {
 
         match func_val {
             // Partial application: filter(predicate) or map(transform)
-            Value::Function(NovaFunction::Partial {
-                func,
-                applied_args,
-            }) => {
+            Value::Function(NovaFunction::Partial { func, applied_args }) => {
                 if let NovaFunction::Builtin { name, .. } = *func {
                     match name.as_str() {
                         "filter" => {
-                            if let Some(Value::Function(pred)) = applied_args.first() {
-                                if let Value::List(items) = input {
-                                    let mut result = Vec::new();
-                                    for item in items {
-                                        let keep =
-                                            self.call_function(pred, vec![item.clone()])?;
-                                        if keep.is_truthy() {
-                                            result.push(item);
-                                        }
+                            if let Some(Value::Function(pred)) = applied_args.first()
+                                && let Value::List(items) = input
+                            {
+                                let mut result = Vec::new();
+                                for item in items {
+                                    let keep = self.call_function(pred, vec![item.clone()])?;
+                                    if keep.is_truthy() {
+                                        result.push(item);
                                     }
-                                    return Ok(Value::List(result));
                                 }
+                                return Ok(Value::List(result));
                             }
                         }
                         "map" => {
                             if let Some(Value::Function(transform)) = applied_args.first()
+                                && let Value::List(items) = input
                             {
-                                if let Value::List(items) = input {
-                                    let mut result = Vec::new();
-                                    for item in items {
-                                        let mapped = self.call_function(
-                                            transform,
-                                            vec![item],
-                                        )?;
-                                        result.push(mapped);
-                                    }
-                                    return Ok(Value::List(result));
+                                let mut result = Vec::new();
+                                for item in items {
+                                    let mapped = self.call_function(transform, vec![item])?;
+                                    result.push(mapped);
                                 }
+                                return Ok(Value::List(result));
                             }
                         }
                         _ => {}
@@ -774,9 +778,7 @@ impl Interpreter {
 
     fn call_function(&mut self, func: &NovaFunction, args: Vec<Value>) -> IResult {
         match func {
-            NovaFunction::UserDefined {
-                params, body, ..
-            } => {
+            NovaFunction::UserDefined { params, body, .. } => {
                 self.env.push_scope();
 
                 // Bind parameters
@@ -831,8 +833,7 @@ impl Interpreter {
             NovaFunction::Builtin { name, func: f } => {
                 // Special handling for print — capture output
                 if name == "print" {
-                    let output: Vec<String> =
-                        args.iter().map(|a| a.to_string()).collect();
+                    let output: Vec<String> = args.iter().map(|a| a.to_string()).collect();
                     let line = output.join(" ");
                     self.output.push(line);
                     return Ok(Value::None);
@@ -840,10 +841,7 @@ impl Interpreter {
                 f(args)
             }
 
-            NovaFunction::Partial {
-                func,
-                applied_args,
-            } => {
+            NovaFunction::Partial { func, applied_args } => {
                 let mut all_args = applied_args.clone();
                 all_args.extend(args);
                 self.call_function(func, all_args)
@@ -853,12 +851,7 @@ impl Interpreter {
 
     // ── Binary operators ─────────────────────────────────────
 
-    fn eval_binary_op(
-        &self,
-        left: &Value,
-        op: BinaryOperator,
-        right: &Value,
-    ) -> IResult {
+    fn eval_binary_op(&self, left: &Value, op: BinaryOperator, right: &Value) -> IResult {
         match op {
             BinaryOperator::Add => match (left, right) {
                 (Value::Int(a), Value::Int(b)) => Ok(Value::Int(a + b)),
@@ -927,30 +920,26 @@ impl Interpreter {
                     Ok(Value::Int((*a as f64).powi(*b as i32) as i64))
                 }
                 (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a.powf(*b))),
-                (Value::Int(a), Value::Float(b)) => {
-                    Ok(Value::Float((*a as f64).powf(*b)))
-                }
-                (Value::Float(a), Value::Int(b)) => {
-                    Ok(Value::Float(a.powi(*b as i32)))
-                }
+                (Value::Int(a), Value::Float(b)) => Ok(Value::Float((*a as f64).powf(*b))),
+                (Value::Float(a), Value::Int(b)) => Ok(Value::Float(a.powi(*b as i32))),
                 _ => Err(RuntimeError::TypeError {
                     message: format!("cannot raise {left} to {right}"),
                 }),
             },
             BinaryOperator::Eq => Ok(Value::Bool(self.values_equal(left, right))),
             BinaryOperator::NotEq => Ok(Value::Bool(!self.values_equal(left, right))),
-            BinaryOperator::Lt => self.compare_values(left, right, |ord| {
-                ord == std::cmp::Ordering::Less
-            }),
-            BinaryOperator::Gt => self.compare_values(left, right, |ord| {
-                ord == std::cmp::Ordering::Greater
-            }),
-            BinaryOperator::LtEq => self.compare_values(left, right, |ord| {
-                ord != std::cmp::Ordering::Greater
-            }),
-            BinaryOperator::GtEq => self.compare_values(left, right, |ord| {
-                ord != std::cmp::Ordering::Less
-            }),
+            BinaryOperator::Lt => {
+                self.compare_values(left, right, |ord| ord == std::cmp::Ordering::Less)
+            }
+            BinaryOperator::Gt => {
+                self.compare_values(left, right, |ord| ord == std::cmp::Ordering::Greater)
+            }
+            BinaryOperator::LtEq => {
+                self.compare_values(left, right, |ord| ord != std::cmp::Ordering::Greater)
+            }
+            BinaryOperator::GtEq => {
+                self.compare_values(left, right, |ord| ord != std::cmp::Ordering::Less)
+            }
             BinaryOperator::In => match right {
                 Value::List(items) => Ok(Value::Bool(
                     items.iter().any(|item| self.values_equal(left, item)),
@@ -964,9 +953,9 @@ impl Interpreter {
                 }
                 _ => Ok(Value::Bool(false)),
             },
-            BinaryOperator::Is => {
-                Ok(Value::Bool(std::mem::discriminant(left) == std::mem::discriminant(right)))
-            }
+            BinaryOperator::Is => Ok(Value::Bool(
+                std::mem::discriminant(left) == std::mem::discriminant(right),
+            )),
             // And/Or handled via short-circuit above
             BinaryOperator::And | BinaryOperator::Or => unreachable!(),
         }
@@ -993,14 +982,20 @@ impl Interpreter {
     ) -> IResult {
         let ord = match (a, b) {
             (Value::Int(x), Value::Int(y)) => x.cmp(y),
-            (Value::Float(x), Value::Float(y)) => x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal),
-            (Value::Int(x), Value::Float(y)) => (*x as f64).partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal),
-            (Value::Float(x), Value::Int(y)) => x.partial_cmp(&(*y as f64)).unwrap_or(std::cmp::Ordering::Equal),
+            (Value::Float(x), Value::Float(y)) => {
+                x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal)
+            }
+            (Value::Int(x), Value::Float(y)) => (*x as f64)
+                .partial_cmp(y)
+                .unwrap_or(std::cmp::Ordering::Equal),
+            (Value::Float(x), Value::Int(y)) => x
+                .partial_cmp(&(*y as f64))
+                .unwrap_or(std::cmp::Ordering::Equal),
             (Value::Str(x), Value::Str(y)) => x.cmp(y),
             _ => {
                 return Err(RuntimeError::TypeError {
                     message: format!("cannot compare {a} and {b}"),
-                })
+                });
             }
         };
         Ok(Value::Bool(pred(ord)))
@@ -1008,12 +1003,7 @@ impl Interpreter {
 
     // ── Method calls ─────────────────────────────────────────
 
-    fn eval_method_call(
-        &mut self,
-        object: &Value,
-        method: &str,
-        args: Vec<Value>,
-    ) -> IResult {
+    fn eval_method_call(&mut self, object: &Value, method: &str, args: Vec<Value>) -> IResult {
         match (object, method) {
             (Value::Str(s), "len") => Ok(Value::Int(s.len() as i64)),
             (Value::Str(s), "upper") => Ok(Value::Str(s.to_uppercase())),
@@ -1052,12 +1042,13 @@ impl Interpreter {
                     _ => " ",
                 };
                 Ok(Value::List(
-                    s.split(sep).map(|part| Value::Str(part.to_string())).collect(),
+                    s.split(sep)
+                        .map(|part| Value::Str(part.to_string()))
+                        .collect(),
                 ))
             }
             (Value::Str(s), "replace") => {
-                if let (Some(Value::Str(from)), Some(Value::Str(to))) =
-                    (args.first(), args.get(1))
+                if let (Some(Value::Str(from)), Some(Value::Str(to))) = (args.first(), args.get(1))
                 {
                     Ok(Value::Str(s.replace(from.as_str(), to.as_str())))
                 } else {

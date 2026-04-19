@@ -47,7 +47,28 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, Box<dyn std::error::Error>> 
 
         // Handle blank lines and comment-only lines
         if trimmed.is_empty() || trimmed.starts_with('#') {
-            if trimmed.starts_with('#') {
+            // For doc comments, respect indentation — emit dedents if needed
+            // so they're attached to the right scope
+            let is_doc = trimmed.starts_with("##");
+            if is_doc && bracket_depth == 0 {
+                let indent = line.len() - line.trim_start().len();
+                while indent < *indent_stack.last().unwrap() {
+                    indent_stack.pop();
+                    tokens.push(Token {
+                        kind: TokenKind::Dedent,
+                        span: (line_num, 0, 0),
+                        text: String::new(),
+                    });
+                }
+            }
+
+            if is_doc {
+                tokens.push(Token {
+                    kind: TokenKind::DocComment,
+                    span: (line_num, 0, line.len()),
+                    text: trimmed.trim_start_matches('#').trim().to_string(),
+                });
+            } else if trimmed.starts_with('#') {
                 tokens.push(Token {
                     kind: TokenKind::Comment,
                     span: (line_num, 0, line.len()),

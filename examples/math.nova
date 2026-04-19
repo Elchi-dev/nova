@@ -1,0 +1,35 @@
+## Math utility library
+## Common mathematical operations for Nova programs.
+
+## Calculates the factorial of a number.
+##
+## ```
+## factorial(5)  # returns 120
+## ```
+pub fn factorial(n: int) -> int:
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
+
+## Returns true if `n` is prime.
+## Uses trial division up to sqrt(n).
+pub fn is_prime(n: int) -> bool:
+    if n < 2:
+        return false
+    let mut i: int = 2
+    while i * i <= n:
+        if n % i == 0:
+            return false
+        i = i + 1
+    return true
+
+## A point in 2D space.
+pub struct Point:
+    let x: float = 0.0
+    let y: float = 0.0
+
+## Computes the distance between two points.
+pub fn distance(a: Point, b: Point) -> float:
+    let dx = a.x - b.x
+    let dy = a.y - b.y
+    return (dx * dx + dy * dy) ** 0.5

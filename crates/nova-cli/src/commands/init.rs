@@ -61,7 +61,10 @@ fn test_basic():
     print("1 + 1 = " + str(x))
 "#
         );
-        fs::write(project_dir.join("tests").join("test_main.nova"), test_source)?;
+        fs::write(
+            project_dir.join("tests").join("test_main.nova"),
+            test_source,
+        )?;
     }
 
     // Create .gitignore
@@ -91,11 +94,7 @@ nova check
 
     // Print success
     let kind = if lib { "library" } else { "application" };
-    println!(
-        "{} Nova {kind} `{}`",
-        "created".green().bold(),
-        name.cyan()
-    );
+    println!("{} Nova {kind} `{}`", "created".green().bold(), name.cyan());
     println!();
 
     let tree = if lib {
@@ -109,7 +108,11 @@ nova check
     };
     println!("{tree}");
     println!();
-    println!("  Run: {} {}", "nova run".cyan(), format!("{name}/src/main.nova").dimmed());
+    println!(
+        "  Run: {} {}",
+        "nova run".cyan(),
+        format!("{name}/src/main.nova").dimmed()
+    );
 
     Ok(())
 }

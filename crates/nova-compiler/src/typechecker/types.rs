@@ -217,7 +217,7 @@ impl fmt::Display for Effect {
 }
 
 impl Effect {
-    pub fn from_str(s: &str) -> Effect {
+    pub fn parse(s: &str) -> Effect {
         match s {
             "io" => Effect::IO,
             "error" => Effect::Error,

@@ -45,11 +45,7 @@ pub enum TypeError {
     NonBoolCondition { found: Type },
 
     #[error("cannot use operator `{op}` with types `{left}` and `{right}`")]
-    InvalidOperator {
-        op: String,
-        left: Type,
-        right: Type,
-    },
+    InvalidOperator { op: String, left: Type, right: Type },
 
     #[error("cannot negate type `{ty}`")]
     InvalidNegation { ty: Type },
@@ -83,16 +79,10 @@ pub enum TypeError {
     InfiniteType { var: String, ty: Type },
 
     #[error("duplicate field `{field}` in struct `{struct_name}`")]
-    DuplicateField {
-        struct_name: String,
-        field: String,
-    },
+    DuplicateField { struct_name: String, field: String },
 
     #[error("missing field `{field}` in struct `{struct_name}`")]
-    MissingField {
-        struct_name: String,
-        field: String,
-    },
+    MissingField { struct_name: String, field: String },
 
     #[error("match is not exhaustive — missing patterns")]
     NonExhaustiveMatch,

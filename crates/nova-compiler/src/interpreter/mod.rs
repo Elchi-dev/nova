@@ -135,17 +135,13 @@ mod tests {
 
     #[test]
     fn test_while_loop() {
-        let output = run_ok(
-            "let mut i: int = 0\nwhile i < 3:\n    print(i)\n    i = i + 1",
-        );
+        let output = run_ok("let mut i: int = 0\nwhile i < 3:\n    print(i)\n    i = i + 1");
         assert_eq!(output, vec!["0", "1", "2"]);
     }
 
     #[test]
     fn test_for_loop() {
-        let output = run_ok(
-            "for x in [10, 20, 30]:\n    print(x)",
-        );
+        let output = run_ok("for x in [10, 20, 30]:\n    print(x)");
         assert_eq!(output, vec!["10", "20", "30"]);
     }
 
@@ -183,9 +179,7 @@ mod tests {
 
     #[test]
     fn test_main_function() {
-        let output = run_ok(
-            "fn main():\n    print(\"from main\")",
-        );
+        let output = run_ok("fn main():\n    print(\"from main\")");
         assert_eq!(output, vec!["from main"]);
     }
 
@@ -225,25 +219,20 @@ mod tests {
 
     #[test]
     fn test_pipe_filter() {
-        let output = run_ok(
-            "let result = [1, 2, 3, 4, 5] |> filter(x => x > 3)\nprint(result)",
-        );
+        let output = run_ok("let result = [1, 2, 3, 4, 5] |> filter(x => x > 3)\nprint(result)");
         assert_eq!(output, vec!["[4, 5]"]);
     }
 
     #[test]
     fn test_pipe_map() {
-        let output = run_ok(
-            "let result = [1, 2, 3] |> map(x => x * 10)\nprint(result)",
-        );
+        let output = run_ok("let result = [1, 2, 3] |> map(x => x * 10)\nprint(result)");
         assert_eq!(output, vec!["[10, 20, 30]"]);
     }
 
     #[test]
     fn test_pipe_chain() {
-        let output = run_ok(
-            "let result = [5, 3, 1, 4, 2] |> filter(x => x > 2) |> sort\nprint(result)",
-        );
+        let output =
+            run_ok("let result = [5, 3, 1, 4, 2] |> filter(x => x > 2) |> sort\nprint(result)");
         assert_eq!(output, vec!["[3, 4, 5]"]);
     }
 
@@ -261,9 +250,8 @@ mod tests {
 
     #[test]
     fn test_string_methods() {
-        let output = run_ok(
-            "print(\"hello\".upper())\nprint(\"WORLD\".lower())\nprint(\"  hi  \".trim())",
-        );
+        let output =
+            run_ok("print(\"hello\".upper())\nprint(\"WORLD\".lower())\nprint(\"  hi  \".trim())");
         assert_eq!(output, vec!["HELLO", "world", "hi"]);
     }
 

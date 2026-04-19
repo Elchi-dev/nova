@@ -120,16 +120,19 @@ The full developer workflow is now in place: `nova init` scaffolds projects, `no
 | Feature | Status | Notes |
 |---------|--------|-------|
 | `nova run` | ✅ Done | Lex → parse → type-check → execute (tree-walking interpreter) |
+| `nova run --watch` | ✅ Done | Auto-reruns on file changes (notify crate, 100ms debounce) |
 | `nova build` | 🔲 Stub | Needs codegen (Phase 3) |
 | `nova check` | ✅ Done | Full pipeline: lex → parse → type-check with error reporting |
 | `nova fmt` | ✅ Done | AST-based formatter, walks directories, `--check` mode |
 | `nova test` | ✅ Done | Auto-discovers `test_*` functions, runs with timing, filter support |
-| `nova doc` | 🔲 Stub | Generate HTML docs from doc comments |
+| `nova doc` | ✅ Done | HTML docs from `##` doc comments with syntax-highlighted theme |
 | `nova repl` | ✅ Done | Interactive REPL with multi-line blocks, `:help`, `:clear`, persistent env |
 | `nova init` | ✅ Done | Project scaffolding: `nova.toml`, `src/`, `tests/`, README, `.gitignore` |
 | `nova mod add/remove/update` | 🔲 Stub | Package registry and dependency resolution |
 | LSP server | 🔲 Planned | Editor support for VS Code, Neovim, etc. |
 | `nova build --explain` | 🔲 Planned | Show semantic optimizations applied |
+| Continuous Integration (CI) | ✅ Done | GitHub Actions: tests across ubuntu/macos/windows, clippy, rustfmt |
+| Doc comments (`##`) | ✅ Done | Attach docs to fn/struct/enum/trait, surface in `nova doc` |
 
 ---
 

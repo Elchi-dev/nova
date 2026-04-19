@@ -1,4 +1,6 @@
-use crate::ast::{self, Program, Statement, Expression, Parameter, TypeExpr, Decorator, Block, BinaryOperator};
+use crate::ast::{
+    self, BinaryOperator, Block, Decorator, Expression, Parameter, Program, Statement, TypeExpr,
+};
 use crate::lexer::{Token, TokenKind};
 use thiserror::Error;
 
@@ -66,8 +68,77 @@ impl Parser {
     fn skip_newlines(&mut self) {
         while self.current_kind() == TokenKind::Newline
             || self.current_kind() == TokenKind::Comment
+            || self.current_kind() == TokenKind::DocComment
         {
             self.advance();
+        }
+    }
+
+    /// Skip only whitespace/comments but keep DocComments for collection.
+    fn skip_non_doc_noise(&mut self) {
+        while self.current_kind() == TokenKind::Newline || self.current_kind() == TokenKind::Comment
+        {
+            self.advance();
+        }
+    }
+
+    /// Collect consecutive doc comments. Stops at any non-DocComment/Newline token.
+    /// A blank line between doc and declaration means the doc is file-level and gets dropped.
+    fn collect_doc_comments(&mut self) -> Option<String> {
+        let mut doc_lines: Vec<String> = Vec::new();
+
+        loop {
+            match self.current_kind() {
+                TokenKind::DocComment => {
+                    if let Some(tok) = self.current() {
+                        doc_lines.push(tok.text.clone());
+                    }
+                    self.advance();
+                }
+                TokenKind::Newline => {
+                    // Peek ahead: if next non-newline is another DocComment, keep collecting
+                    // If it's anything else (declaration, blank), stop
+                    self.advance();
+                    match self.peek_past_newlines() {
+                        Some(TokenKind::DocComment) => {
+                            // Check if there was a blank line (2+ consecutive newlines before next doc)
+                            let mut blank = false;
+                            let mut i = self.pos;
+                            let mut nl_count = 0;
+                            while i < self.tokens.len() {
+                                match self.tokens[i].kind {
+                                    TokenKind::Newline => {
+                                        nl_count += 1;
+                                        if nl_count >= 1 {
+                                            blank = true;
+                                        }
+                                    }
+                                    TokenKind::Comment => {}
+                                    _ => break,
+                                }
+                                i += 1;
+                            }
+                            if blank {
+                                // Blank line separates doc blocks — drop current and start fresh
+                                doc_lines.clear();
+                                self.skip_non_doc_noise();
+                            }
+                            // Continue loop to collect next doc comment
+                        }
+                        _ => break,
+                    }
+                }
+                TokenKind::Comment => {
+                    self.advance();
+                }
+                _ => break,
+            }
+        }
+
+        if doc_lines.is_empty() {
+            None
+        } else {
+            Some(doc_lines.join("\n"))
         }
     }
 
@@ -117,11 +188,11 @@ impl Parser {
     pub fn parse_program(&mut self) -> Result<Program, Box<dyn std::error::Error>> {
         let mut statements = Vec::new();
 
-        self.skip_newlines();
+        self.skip_non_doc_noise();
         while !self.at(TokenKind::Eof) {
             let stmt = self.parse_statement()?;
             statements.push(stmt);
-            self.skip_newlines();
+            self.skip_non_doc_noise();
         }
 
         Ok(Program { statements })
@@ -130,21 +201,28 @@ impl Parser {
     // ── Statement parsing ────────────────────────────────────
 
     fn parse_statement(&mut self) -> Result<Statement, Box<dyn std::error::Error>> {
-        self.skip_newlines();
+        self.skip_non_doc_noise();
+
+        // Doc comments precede declarations
+        let doc = if self.at(TokenKind::DocComment) {
+            self.collect_doc_comments()
+        } else {
+            None
+        };
 
         match self.current_kind() {
-            TokenKind::At => self.parse_decorated(),
-            TokenKind::Fn => self.parse_function_def(Vec::new(), false),
-            TokenKind::Pub => self.parse_pub_item(),
+            TokenKind::At => self.parse_decorated(doc),
+            TokenKind::Fn => self.parse_function_def(Vec::new(), false, doc),
+            TokenKind::Pub => self.parse_pub_item(doc),
             TokenKind::Let => self.parse_let_binding(),
             TokenKind::Const => self.parse_const_binding(),
             TokenKind::If => self.parse_if(),
             TokenKind::For => self.parse_for(),
             TokenKind::While => self.parse_while(),
             TokenKind::Return => self.parse_return(),
-            TokenKind::Struct => self.parse_struct(false),
-            TokenKind::Enum => self.parse_enum(false),
-            TokenKind::Trait => self.parse_trait(false),
+            TokenKind::Struct => self.parse_struct(false, doc),
+            TokenKind::Enum => self.parse_enum(false, doc),
+            TokenKind::Trait => self.parse_trait(false, doc),
             TokenKind::Impl => self.parse_impl(),
             TokenKind::Import => self.parse_import(),
             TokenKind::Match => self.parse_match(),
@@ -160,7 +238,10 @@ impl Parser {
         }
     }
 
-    fn parse_decorated(&mut self) -> Result<Statement, Box<dyn std::error::Error>> {
+    fn parse_decorated(
+        &mut self,
+        doc: Option<String>,
+    ) -> Result<Statement, Box<dyn std::error::Error>> {
         let mut decorators = Vec::new();
 
         while self.at(TokenKind::At) {
@@ -184,8 +265,20 @@ impl Parser {
         }
 
         match self.current_kind() {
-            TokenKind::Fn => self.parse_function_def(decorators, false),
-            TokenKind::Struct => self.parse_struct(false), // TODO: pass decorators
+            TokenKind::Fn => self.parse_function_def(decorators, false, doc),
+            TokenKind::Struct => self.parse_struct(false, doc),
+            TokenKind::Pub => {
+                // pub after decorators
+                self.advance();
+                match self.current_kind() {
+                    TokenKind::Fn => self.parse_function_def(decorators, true, doc),
+                    TokenKind::Struct => self.parse_struct(true, doc),
+                    _ => Err(Box::new(ParseError::InvalidSyntax {
+                        line: self.current().map(|t| t.span.0).unwrap_or(0),
+                        message: "decorator + pub must be followed by fn or struct".to_string(),
+                    })),
+                }
+            }
             _ => Err(Box::new(ParseError::InvalidSyntax {
                 line: self.current().map(|t| t.span.0).unwrap_or(0),
                 message: "decorator must be followed by fn or struct".to_string(),
@@ -193,13 +286,16 @@ impl Parser {
         }
     }
 
-    fn parse_pub_item(&mut self) -> Result<Statement, Box<dyn std::error::Error>> {
+    fn parse_pub_item(
+        &mut self,
+        doc: Option<String>,
+    ) -> Result<Statement, Box<dyn std::error::Error>> {
         self.advance(); // skip `pub`
         match self.current_kind() {
-            TokenKind::Fn => self.parse_function_def(Vec::new(), true),
-            TokenKind::Struct => self.parse_struct(true),
-            TokenKind::Enum => self.parse_enum(true),
-            TokenKind::Trait => self.parse_trait(true),
+            TokenKind::Fn => self.parse_function_def(Vec::new(), true, doc),
+            TokenKind::Struct => self.parse_struct(true, doc),
+            TokenKind::Enum => self.parse_enum(true, doc),
+            TokenKind::Trait => self.parse_trait(true, doc),
             _ => Err(Box::new(ParseError::InvalidSyntax {
                 line: self.current().map(|t| t.span.0).unwrap_or(0),
                 message: "pub must be followed by fn, struct, enum, or trait".to_string(),
@@ -211,6 +307,7 @@ impl Parser {
         &mut self,
         decorators: Vec<Decorator>,
         is_pub: bool,
+        doc_comment: Option<String>,
     ) -> Result<Statement, Box<dyn std::error::Error>> {
         self.expect(TokenKind::Fn)?;
         let name = self.expect(TokenKind::Identifier)?.text.clone();
@@ -275,6 +372,7 @@ impl Parser {
             body,
             decorators,
             is_pub,
+            doc_comment,
         })
     }
 
@@ -395,7 +493,11 @@ impl Parser {
         }
     }
 
-    fn parse_struct(&mut self, is_pub: bool) -> Result<Statement, Box<dyn std::error::Error>> {
+    fn parse_struct(
+        &mut self,
+        is_pub: bool,
+        doc_comment: Option<String>,
+    ) -> Result<Statement, Box<dyn std::error::Error>> {
         self.expect(TokenKind::Struct)?;
         let name = self.expect(TokenKind::Identifier)?.text.clone();
         self.expect(TokenKind::Colon)?;
@@ -405,7 +507,10 @@ impl Parser {
             .into_iter()
             .filter_map(|s| {
                 if let Statement::LetBinding {
-                    name, type_annotation, value, ..
+                    name,
+                    type_annotation,
+                    value,
+                    ..
                 } = s
                 {
                     Some(ast::Field {
@@ -424,10 +529,15 @@ impl Parser {
             name,
             fields,
             is_pub,
+            doc_comment,
         })
     }
 
-    fn parse_enum(&mut self, is_pub: bool) -> Result<Statement, Box<dyn std::error::Error>> {
+    fn parse_enum(
+        &mut self,
+        is_pub: bool,
+        doc_comment: Option<String>,
+    ) -> Result<Statement, Box<dyn std::error::Error>> {
         self.expect(TokenKind::Enum)?;
         let name = self.expect(TokenKind::Identifier)?.text.clone();
         self.expect(TokenKind::Colon)?;
@@ -439,10 +549,15 @@ impl Parser {
             name,
             variants: Vec::new(), // TODO: proper variant parsing
             is_pub,
+            doc_comment,
         })
     }
 
-    fn parse_trait(&mut self, is_pub: bool) -> Result<Statement, Box<dyn std::error::Error>> {
+    fn parse_trait(
+        &mut self,
+        is_pub: bool,
+        doc_comment: Option<String>,
+    ) -> Result<Statement, Box<dyn std::error::Error>> {
         self.expect(TokenKind::Trait)?;
         let name = self.expect(TokenKind::Identifier)?.text.clone();
         self.expect(TokenKind::Colon)?;
@@ -452,6 +567,7 @@ impl Parser {
             name,
             methods: Vec::new(), // TODO: proper method parsing
             is_pub,
+            doc_comment,
         })
     }
 
@@ -535,10 +651,11 @@ impl Parser {
     // ── Block parsing ────────────────────────────────────────
 
     fn parse_indented_block(&mut self) -> Result<Block, Box<dyn std::error::Error>> {
-        self.skip_newlines();
+        self.skip_non_doc_noise();
         self.expect(TokenKind::Indent)?;
 
         let mut stmts = Vec::new();
+        // Inside blocks, also skip doc comments - they only attach to top-level declarations
         self.skip_newlines();
 
         while !self.at(TokenKind::Dedent) && !self.at(TokenKind::Eof) {
@@ -557,7 +674,7 @@ impl Parser {
         self.expect(TokenKind::LBrace)?;
         let mut stmts = Vec::new();
 
-        self.skip_newlines();
+        self.skip_non_doc_noise();
         while !self.at(TokenKind::RBrace) && !self.at(TokenKind::Eof) {
             stmts.push(self.parse_statement()?);
             // In brace mode, semicolons separate statements
@@ -757,8 +874,7 @@ impl Parser {
                         self.advance(); // skip {
                         let mut fields = Vec::new();
                         while !self.at(TokenKind::RBrace) {
-                            let field_name =
-                                self.expect(TokenKind::Identifier)?.text.clone();
+                            let field_name = self.expect(TokenKind::Identifier)?.text.clone();
                             self.expect(TokenKind::Colon)?;
                             let field_value = self.parse_expression()?;
                             fields.push((field_name, field_value));

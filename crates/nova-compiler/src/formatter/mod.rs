@@ -56,9 +56,7 @@ impl Formatter {
             );
 
             // Blank line between definitions and before first def
-            if is_def && i > 0 {
-                self.newline();
-            } else if prev_was_def && !is_def {
+            if (is_def && i > 0) || (prev_was_def && !is_def) {
                 self.newline();
             }
 
@@ -79,7 +77,13 @@ impl Formatter {
                 body,
                 decorators,
                 is_pub,
+                doc_comment,
             } => {
+                if let Some(doc) = doc_comment {
+                    for line in doc.lines() {
+                        self.writeln(&format!("## {line}"));
+                    }
+                }
                 for dec in decorators {
                     self.write_indent();
                     self.write(&format!("@{}", dec.name));
@@ -100,7 +104,11 @@ impl Formatter {
                     if i > 0 {
                         self.write(", ");
                     }
-                    self.write(&format!("{}: {}", param.name, self.format_type(&param.type_annotation)));
+                    self.write(&format!(
+                        "{}: {}",
+                        param.name,
+                        self.format_type(&param.type_annotation)
+                    ));
                 }
                 self.write(")");
 
@@ -122,7 +130,13 @@ impl Formatter {
                 name,
                 fields,
                 is_pub,
+                doc_comment,
             } => {
+                if let Some(doc) = doc_comment {
+                    for line in doc.lines() {
+                        self.writeln(&format!("## {line}"));
+                    }
+                }
                 self.write_indent();
                 if *is_pub {
                     self.write("pub ");
@@ -134,7 +148,11 @@ impl Formatter {
                     if field.is_pub {
                         self.write("pub ");
                     }
-                    self.write(&format!("let {}: {}", field.name, self.format_type(&field.type_annotation)));
+                    self.write(&format!(
+                        "let {}: {}",
+                        field.name,
+                        self.format_type(&field.type_annotation)
+                    ));
                     if let Some(default) = &field.default {
                         self.write(" = ");
                         self.write(&self.format_expr(default));
@@ -148,7 +166,13 @@ impl Formatter {
                 name,
                 variants,
                 is_pub,
+                doc_comment,
             } => {
+                if let Some(doc) = doc_comment {
+                    for line in doc.lines() {
+                        self.writeln(&format!("## {line}"));
+                    }
+                }
                 self.write_indent();
                 if *is_pub {
                     self.write("pub ");
@@ -160,7 +184,8 @@ impl Formatter {
                     self.write(&format!("case {}", variant.name));
                     if let Some(fields) = &variant.fields {
                         self.write("(");
-                        let types: Vec<String> = fields.iter().map(|t| self.format_type(t)).collect();
+                        let types: Vec<String> =
+                            fields.iter().map(|t| self.format_type(t)).collect();
                         self.write(&types.join(", "));
                         self.write(")");
                     }
@@ -173,7 +198,13 @@ impl Formatter {
                 name,
                 methods,
                 is_pub,
+                doc_comment,
             } => {
+                if let Some(doc) = doc_comment {
+                    for line in doc.lines() {
+                        self.writeln(&format!("## {line}"));
+                    }
+                }
                 self.write_indent();
                 if *is_pub {
                     self.write("pub ");
@@ -294,7 +325,10 @@ impl Formatter {
                 body,
             } => {
                 self.write_indent();
-                self.write(&format!("for {variable} in {}:\n", self.format_expr(iterable)));
+                self.write(&format!(
+                    "for {variable} in {}:\n",
+                    self.format_expr(iterable)
+                ));
                 self.indent += 1;
                 self.format_block(body);
                 self.indent -= 1;
@@ -411,7 +445,11 @@ impl Formatter {
                     BinaryOperator::In => "in",
                     BinaryOperator::Is => "is",
                 };
-                format!("{} {op_str} {}", self.format_expr(left), self.format_expr(right))
+                format!(
+                    "{} {op_str} {}",
+                    self.format_expr(left),
+                    self.format_expr(right)
+                )
             }
 
             Expression::UnaryOp { op, operand } => {
@@ -433,7 +471,11 @@ impl Formatter {
                 args,
             } => {
                 let args_str: Vec<String> = args.iter().map(|a| self.format_expr(a)).collect();
-                format!("{}.{method}({})", self.format_expr(object), args_str.join(", "))
+                format!(
+                    "{}.{method}({})",
+                    self.format_expr(object),
+                    args_str.join(", ")
+                )
             }
 
             Expression::FieldAccess { object, field } => {

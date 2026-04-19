@@ -23,6 +23,10 @@ enum Commands {
         /// Path to the .nova file
         file: PathBuf,
 
+        /// Re-run automatically when the file changes
+        #[arg(short, long)]
+        watch: bool,
+
         /// Arguments passed to the program
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
@@ -126,7 +130,7 @@ fn main() {
     let cli = Cli::parse();
 
     let result = match cli.command {
-        Commands::Run { file, args } => commands::run::execute(file, args),
+        Commands::Run { file, args, watch } => commands::run::execute(file, args, watch),
         Commands::Build {
             path,
             output,

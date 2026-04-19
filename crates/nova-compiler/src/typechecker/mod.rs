@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err)]
+
 pub mod check;
 pub mod env;
 pub mod error;
@@ -39,28 +41,29 @@ mod tests {
     #[test]
     fn test_type_mismatch_in_let() {
         let result = check_source("let x: int = \"hello\"");
-        assert!(
-            !result.errors.is_empty(),
-            "should error on int = string"
-        );
+        assert!(!result.errors.is_empty(), "should error on int = string");
     }
 
     #[test]
     fn test_undefined_variable() {
         let result = check_source("let x: int = y");
-        assert!(result.errors.iter().any(|e| matches!(
-            e,
-            TypeError::UndefinedVariable { .. }
-        )));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, TypeError::UndefinedVariable { .. }))
+        );
     }
 
     #[test]
     fn test_immutable_assignment() {
         let result = check_source("let x: int = 1\nx = 2");
-        assert!(result.errors.iter().any(|e| matches!(
-            e,
-            TypeError::ImmutableAssignment { .. }
-        )));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, TypeError::ImmutableAssignment { .. }))
+        );
     }
 
     #[test]
@@ -72,34 +75,35 @@ mod tests {
     #[test]
     fn test_non_bool_condition() {
         let result = check_source("if 42:\n    let x: int = 1");
-        assert!(result.errors.iter().any(|e| matches!(
-            e,
-            TypeError::NonBoolCondition { .. }
-        )));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, TypeError::NonBoolCondition { .. }))
+        );
     }
 
     #[test]
     fn test_break_outside_loop() {
         let result = check_source("break");
-        assert!(result.errors.iter().any(|e| matches!(
-            e,
-            TypeError::BreakOutsideLoop
-        )));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, TypeError::BreakOutsideLoop))
+        );
     }
 
     #[test]
     fn test_for_loop_variable_typing() {
-        let result = check_source(
-            "let items: list[int] = [1, 2, 3]\nfor x in items:\n    let y: int = x",
-        );
+        let result =
+            check_source("let items: list[int] = [1, 2, 3]\nfor x in items:\n    let y: int = x");
         assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
     }
 
     #[test]
     fn test_pipe_operator() {
-        let result = check_source(
-            "let data: list[int] = [1, 2, 3]\nlet result = data |> sum",
-        );
+        let result = check_source("let data: list[int] = [1, 2, 3]\nlet result = data |> sum");
         assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
     }
 

@@ -40,11 +40,7 @@ pub fn execute(path: PathBuf, check: bool) -> Result<(), Box<dyn std::error::Err
     }
 
     if !check {
-        println!(
-            "\n{} formatted {} file(s)",
-            "✓".green().bold(),
-            files.len()
-        );
+        println!("\n{} formatted {} file(s)", "✓".green().bold(), files.len());
     }
 
     Ok(())
@@ -71,10 +67,10 @@ fn collect_recursive(
         let path = entry.path();
         if path.is_dir() {
             collect_recursive(&path, files)?;
-        } else if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-            if ext == "nova" || ext == "nv" {
-                files.push(path);
-            }
+        } else if let Some(ext) = path.extension().and_then(|e| e.to_str())
+            && (ext == "nova" || ext == "nv")
+        {
+            files.push(path);
         }
     }
     Ok(())

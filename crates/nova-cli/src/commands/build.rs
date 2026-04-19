@@ -15,11 +15,7 @@ pub fn execute(
         path.display(),
         mode
     );
-    println!(
-        "{} build target: {}",
-        "→".dimmed(),
-        out_name.cyan()
-    );
+    println!("{} build target: {}", "→".dimmed(), out_name.cyan());
 
     // TODO: Full compilation pipeline → LLVM IR → binary
     println!(

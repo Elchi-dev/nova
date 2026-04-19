@@ -98,13 +98,14 @@ impl TypeEnv {
         // Collection functions used in pipes
         self.define_function(FunctionSig {
             name: "filter".to_string(),
-            params: vec![
-                ("predicate".to_string(), Type::Function {
+            params: vec![(
+                "predicate".to_string(),
+                Type::Function {
                     params: vec![Type::fresh_var()],
                     return_type: Box::new(Type::Bool),
                     effects: vec![],
-                }),
-            ],
+                },
+            )],
             return_type: Type::fresh_var(),
             effects: vec![],
             is_pure: true,
@@ -113,13 +114,14 @@ impl TypeEnv {
 
         self.define_function(FunctionSig {
             name: "map".to_string(),
-            params: vec![
-                ("transform".to_string(), Type::Function {
+            params: vec![(
+                "transform".to_string(),
+                Type::Function {
                     params: vec![Type::fresh_var()],
                     return_type: Box::new(Type::fresh_var()),
                     effects: vec![],
-                }),
-            ],
+                },
+            )],
             return_type: Type::fresh_var(),
             effects: vec![],
             is_pure: true,
@@ -153,12 +155,7 @@ impl TypeEnv {
     }
 
     /// Enter a function scope with a return type and effects
-    pub fn push_function_scope(
-        &mut self,
-        return_type: Type,
-        effects: Vec<Effect>,
-        is_pure: bool,
-    ) {
+    pub fn push_function_scope(&mut self, return_type: Type, effects: Vec<Effect>, is_pure: bool) {
         let mut scope = Scope::new();
         scope.return_type = Some(return_type);
         scope.declared_effects = effects;
@@ -228,9 +225,7 @@ impl TypeEnv {
 
     /// Define a named type
     pub fn define_type(&mut self, name: &str, ty: Type) {
-        self.current_scope_mut()
-            .types
-            .insert(name.to_string(), ty);
+        self.current_scope_mut().types.insert(name.to_string(), ty);
     }
 
     /// Look up a named type
@@ -278,28 +273,24 @@ impl TypeEnv {
     /// Resolve a TypeExpr from the AST into a concrete Type
     pub fn resolve_type_expr(&self, expr: &crate::ast::TypeExpr) -> Type {
         match expr {
-            crate::ast::TypeExpr::Named(name) => {
-                match name.as_str() {
-                    "int" => Type::Int,
-                    "float" => Type::Float,
-                    "bool" => Type::Bool,
-                    "str" => Type::Str,
-                    "char" => Type::Char,
-                    "none" => Type::None,
-                    _ => {
-                        if let Some(ty) = self.lookup_type(name) {
-                            ty.clone()
-                        } else {
-                            Type::Named(name.clone())
-                        }
+            crate::ast::TypeExpr::Named(name) => match name.as_str() {
+                "int" => Type::Int,
+                "float" => Type::Float,
+                "bool" => Type::Bool,
+                "str" => Type::Str,
+                "char" => Type::Char,
+                "none" => Type::None,
+                _ => {
+                    if let Some(ty) = self.lookup_type(name) {
+                        ty.clone()
+                    } else {
+                        Type::Named(name.clone())
                     }
                 }
-            }
+            },
             crate::ast::TypeExpr::Generic(name, args) => {
-                let resolved_args: Vec<Type> = args
-                    .iter()
-                    .map(|a| self.resolve_type_expr(a))
-                    .collect();
+                let resolved_args: Vec<Type> =
+                    args.iter().map(|a| self.resolve_type_expr(a)).collect();
 
                 match name.as_str() {
                     "list" if resolved_args.len() == 1 => {
@@ -313,10 +304,8 @@ impl TypeEnv {
                 }
             }
             crate::ast::TypeExpr::Function(params, ret) => {
-                let param_types: Vec<Type> = params
-                    .iter()
-                    .map(|p| self.resolve_type_expr(p))
-                    .collect();
+                let param_types: Vec<Type> =
+                    params.iter().map(|p| self.resolve_type_expr(p)).collect();
                 let return_type = self.resolve_type_expr(ret);
                 Type::Function {
                     params: param_types,

@@ -38,32 +38,17 @@ pub fn execute(path: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let result = nova_compiler::typechecker::check(&program);
 
     if result.errors.is_empty() {
-        println!(
-            "  {} no errors found",
-            "✓".green().bold()
-        );
+        println!("  {} no errors found", "✓".green().bold());
     } else {
         for err in &result.errors {
-            println!(
-                "  {} {}",
-                "✗".red().bold(),
-                err
-            );
+            println!("  {} {}", "✗".red().bold(), err);
         }
-        return Err(format!(
-            "found {} type error(s)",
-            result.errors.len()
-        )
-        .into());
+        return Err(format!("found {} type error(s)", result.errors.len()).into());
     }
 
     if !result.warnings.is_empty() {
         for warn in &result.warnings {
-            println!(
-                "  {} {}",
-                "⚠".yellow().bold(),
-                warn
-            );
+            println!("  {} {}", "⚠".yellow().bold(), warn);
         }
     }
 
