@@ -212,14 +212,26 @@ impl Parser {
 
         match self.current_kind() {
             TokenKind::At => self.parse_decorated(doc),
-            TokenKind::Fn => self.parse_function_def(Vec::new(), false, doc),
+            TokenKind::Fn => self.parse_function_def(Vec::new(), false, false, doc),
+            TokenKind::Pure => {
+                self.advance(); // skip `pure`
+                self.parse_function_def(Vec::new(), false, true, doc)
+            }
             TokenKind::Pub => self.parse_pub_item(doc),
-            TokenKind::Let => self.parse_let_binding(),
+            TokenKind::Let => self.parse_let_binding(false),
             TokenKind::Const => self.parse_const_binding(),
             TokenKind::If => self.parse_if(),
             TokenKind::For => self.parse_for(),
             TokenKind::While => self.parse_while(),
             TokenKind::Return => self.parse_return(),
+            TokenKind::Require => {
+                self.advance();
+                Ok(Statement::Require(self.parse_expression()?))
+            }
+            TokenKind::Ensure => {
+                self.advance();
+                Ok(Statement::Ensure(self.parse_expression()?))
+            }
             TokenKind::Struct => self.parse_struct(false, doc),
             TokenKind::Enum => self.parse_enum(false, doc),
             TokenKind::Trait => self.parse_trait(false, doc),
@@ -265,13 +277,21 @@ impl Parser {
         }
 
         match self.current_kind() {
-            TokenKind::Fn => self.parse_function_def(decorators, false, doc),
+            TokenKind::Fn => self.parse_function_def(decorators, false, false, doc),
+            TokenKind::Pure => {
+                self.advance();
+                self.parse_function_def(decorators, false, true, doc)
+            }
             TokenKind::Struct => self.parse_struct(false, doc),
             TokenKind::Pub => {
                 // pub after decorators
                 self.advance();
                 match self.current_kind() {
-                    TokenKind::Fn => self.parse_function_def(decorators, true, doc),
+                    TokenKind::Fn => self.parse_function_def(decorators, true, false, doc),
+                    TokenKind::Pure => {
+                        self.advance();
+                        self.parse_function_def(decorators, true, true, doc)
+                    }
                     TokenKind::Struct => self.parse_struct(true, doc),
                     _ => Err(Box::new(ParseError::InvalidSyntax {
                         line: self.current().map(|t| t.span.0).unwrap_or(0),
@@ -292,7 +312,11 @@ impl Parser {
     ) -> Result<Statement, Box<dyn std::error::Error>> {
         self.advance(); // skip `pub`
         match self.current_kind() {
-            TokenKind::Fn => self.parse_function_def(Vec::new(), true, doc),
+            TokenKind::Fn => self.parse_function_def(Vec::new(), true, false, doc),
+            TokenKind::Pure => {
+                self.advance();
+                self.parse_function_def(Vec::new(), true, true, doc)
+            }
             TokenKind::Struct => self.parse_struct(true, doc),
             TokenKind::Enum => self.parse_enum(true, doc),
             TokenKind::Trait => self.parse_trait(true, doc),
@@ -307,6 +331,7 @@ impl Parser {
         &mut self,
         decorators: Vec<Decorator>,
         is_pub: bool,
+        _is_pure: bool,
         doc_comment: Option<String>,
     ) -> Result<Statement, Box<dyn std::error::Error>> {
         self.expect(TokenKind::Fn)?;
@@ -316,9 +341,20 @@ impl Parser {
         self.expect(TokenKind::LParen)?;
         let mut params = Vec::new();
         while !self.at(TokenKind::RParen) {
-            let pname = self.expect(TokenKind::Identifier)?.text.clone();
-            self.expect(TokenKind::Colon)?;
-            let ptype = self.parse_type()?;
+            // Allow `self` keyword as parameter name
+            let pname = if self.at(TokenKind::SelfKw) {
+                self.advance();
+                "self".to_string()
+            } else {
+                self.expect(TokenKind::Identifier)?.text.clone()
+            };
+            // `self` alone has no type annotation
+            let ptype = if self.at(TokenKind::Colon) {
+                self.advance();
+                self.parse_type()?
+            } else {
+                TypeExpr::Named("Self".to_string())
+            };
             params.push(Parameter {
                 name: pname,
                 type_annotation: ptype,
@@ -351,12 +387,18 @@ impl Parser {
             self.expect(TokenKind::RBracket)?;
         }
 
-        // Body — either `:` + indented block or `{` inline `}`
+        // Body — either `:` + indented block, `{` inline `}`, or absent (trait signature)
         let body = if self.at(TokenKind::Colon) {
             self.advance();
             self.parse_indented_block()?
         } else if self.at(TokenKind::LBrace) {
             self.parse_brace_block()?
+        } else if matches!(
+            self.current_kind(),
+            TokenKind::Newline | TokenKind::Dedent | TokenKind::Eof
+        ) {
+            // Trait method signature — no body
+            Vec::new()
         } else {
             return Err(Box::new(ParseError::InvalidSyntax {
                 line: self.current().map(|t| t.span.0).unwrap_or(0),
@@ -376,7 +418,10 @@ impl Parser {
         })
     }
 
-    fn parse_let_binding(&mut self) -> Result<Statement, Box<dyn std::error::Error>> {
+    fn parse_let_binding(
+        &mut self,
+        require_value: bool,
+    ) -> Result<Statement, Box<dyn std::error::Error>> {
         self.expect(TokenKind::Let)?;
 
         let mutable = if self.at(TokenKind::Mut) {
@@ -395,8 +440,18 @@ impl Parser {
             None
         };
 
-        self.expect(TokenKind::Assign)?;
-        let value = self.parse_expression()?;
+        // Value is optional in struct field declarations
+        let value = if self.at(TokenKind::Assign) {
+            self.advance();
+            self.parse_expression()?
+        } else if !require_value {
+            Expression::NoneLiteral
+        } else {
+            return Err(Box::new(ParseError::InvalidSyntax {
+                line: self.current().map(|t| t.span.0).unwrap_or(0),
+                message: "expected '=' in let binding".to_string(),
+            }));
+        };
 
         Ok(Statement::LetBinding {
             name,
@@ -513,10 +568,15 @@ impl Parser {
                     ..
                 } = s
                 {
+                    // NoneLiteral signals "no default" for struct fields without `= value`
+                    let default = match value {
+                        Expression::NoneLiteral => None,
+                        other => Some(other),
+                    };
                     Some(ast::Field {
                         name,
                         type_annotation: type_annotation.unwrap_or(TypeExpr::Named("any".into())),
-                        default: Some(value),
+                        default,
                         is_pub: true,
                     })
                 } else {
@@ -540,14 +600,72 @@ impl Parser {
     ) -> Result<Statement, Box<dyn std::error::Error>> {
         self.expect(TokenKind::Enum)?;
         let name = self.expect(TokenKind::Identifier)?.text.clone();
-        self.expect(TokenKind::Colon)?;
 
-        // Simplified: just parse the block
-        let _body = self.parse_indented_block()?;
+        // Optional generic type parameters: enum Result[T, E]:
+        if self.at(TokenKind::LBracket) {
+            self.advance();
+            while !self.at(TokenKind::RBracket) {
+                self.expect(TokenKind::Identifier)?;
+                if self.at(TokenKind::Comma) {
+                    self.advance();
+                }
+            }
+            self.expect(TokenKind::RBracket)?;
+        }
+
+        self.expect(TokenKind::Colon)?;
+        self.skip_newlines();
+        self.expect(TokenKind::Indent)?;
+        self.skip_newlines();
+
+        let mut variants = Vec::new();
+        while !self.at(TokenKind::Dedent) && !self.at(TokenKind::Eof) {
+            if self.at(TokenKind::Case) {
+                self.advance();
+                let vname = self.expect(TokenKind::Identifier)?.text.clone();
+                // Optional payload: case Some(T) or case Ok(value: T)
+                let fields = if self.at(TokenKind::LParen) {
+                    self.advance();
+                    let mut types = Vec::new();
+                    while !self.at(TokenKind::RParen) {
+                        // Allow `name: Type` or just `Type`
+                        if self.at(TokenKind::Identifier) {
+                            let saved_pos = self.pos;
+                            let _ = self.advance(); // consume identifier
+                            if self.at(TokenKind::Colon) {
+                                self.advance(); // consume colon, parse type
+                                types.push(self.parse_type()?);
+                            } else {
+                                // It was a type name, not a field name
+                                self.pos = saved_pos;
+                                types.push(self.parse_type()?);
+                            }
+                        } else {
+                            types.push(self.parse_type()?);
+                        }
+                        if self.at(TokenKind::Comma) {
+                            self.advance();
+                        }
+                    }
+                    self.expect(TokenKind::RParen)?;
+                    Some(types)
+                } else {
+                    None
+                };
+                variants.push(ast::EnumVariant {
+                    name: vname,
+                    fields,
+                });
+            }
+            self.skip_newlines();
+        }
+        if self.at(TokenKind::Dedent) {
+            self.advance();
+        }
 
         Ok(Statement::EnumDef {
             name,
-            variants: Vec::new(), // TODO: proper variant parsing
+            variants,
             is_pub,
             doc_comment,
         })
@@ -561,11 +679,13 @@ impl Parser {
         self.expect(TokenKind::Trait)?;
         let name = self.expect(TokenKind::Identifier)?.text.clone();
         self.expect(TokenKind::Colon)?;
+        // Parse the trait body — collect method signatures
+        // We reuse parse_indented_block which handles fn defs fine
         let _body = self.parse_indented_block()?;
 
         Ok(Statement::TraitDef {
             name,
-            methods: Vec::new(), // TODO: proper method parsing
+            methods: Vec::new(),
             is_pub,
             doc_comment,
         })
@@ -596,19 +716,51 @@ impl Parser {
     fn parse_import(&mut self) -> Result<Statement, Box<dyn std::error::Error>> {
         self.expect(TokenKind::Import)?;
 
-        // Check for foreign import
+        // Check for foreign import: import foreign("header.h", lang: "c", items: [...])
         if self.at(TokenKind::Foreign) {
             self.advance();
             self.expect(TokenKind::LParen)?;
             let path = self.expect(TokenKind::StringLiteral)?.text.clone();
             let path = path.trim_matches('"').to_string();
-            // TODO: parse lang parameter
+
+            let mut lang = "c".to_string();
+            let mut items: Option<Vec<String>> = None;
+
+            // Parse optional named arguments
+            while self.at(TokenKind::Comma) {
+                self.advance();
+                let key = self.expect(TokenKind::Identifier)?.text.clone();
+                self.expect(TokenKind::Colon)?;
+                match key.as_str() {
+                    "lang" => {
+                        lang = self.expect(TokenKind::StringLiteral)?.text.clone();
+                        lang = lang.trim_matches('"').to_string();
+                    }
+                    "items" => {
+                        self.expect(TokenKind::LBracket)?;
+                        let mut item_list = Vec::new();
+                        while !self.at(TokenKind::RBracket) {
+                            item_list.push(
+                                self.expect(TokenKind::StringLiteral)?
+                                    .text
+                                    .trim_matches('"')
+                                    .to_string(),
+                            );
+                            if self.at(TokenKind::Comma) {
+                                self.advance();
+                            }
+                        }
+                        self.expect(TokenKind::RBracket)?;
+                        items = Some(item_list);
+                    }
+                    _ => {
+                        self.parse_expression()?;
+                    }
+                }
+            }
+
             self.expect(TokenKind::RParen)?;
-            return Ok(Statement::ForeignImport {
-                path,
-                lang: "c".to_string(),
-                items: None,
-            });
+            return Ok(Statement::ForeignImport { path, lang, items });
         }
 
         let mut path = vec![self.expect(TokenKind::Identifier)?.text.clone()];
@@ -624,12 +776,40 @@ impl Parser {
         self.expect(TokenKind::Match)?;
         let subject = self.parse_expression()?;
         self.expect(TokenKind::Colon)?;
-        let _body = self.parse_indented_block()?;
+        self.skip_newlines();
+        self.expect(TokenKind::Indent)?;
+        self.skip_newlines();
 
-        Ok(Statement::Match {
-            subject,
-            arms: Vec::new(), // TODO: proper match arm parsing
-        })
+        let mut arms = Vec::new();
+        while !self.at(TokenKind::Dedent) && !self.at(TokenKind::Eof) {
+            if self.at(TokenKind::Case) {
+                self.advance();
+                // Parse pattern: wildcard `_`, or expression (identifier, dotted, etc.)
+                let pattern = if self.at(TokenKind::Identifier)
+                    && self.current().map(|t| t.text.as_str()) == Some("_")
+                {
+                    self.advance();
+                    ast::Pattern::Wildcard
+                } else {
+                    // Parse as expression and convert to pattern
+                    let expr = self.parse_expression()?;
+                    ast::Pattern::Literal(expr)
+                };
+                self.expect(TokenKind::Colon)?;
+                let body = self.parse_indented_block()?;
+                arms.push(ast::MatchArm {
+                    pattern,
+                    guard: None,
+                    body,
+                });
+            }
+            self.skip_newlines();
+        }
+        if self.at(TokenKind::Dedent) {
+            self.advance();
+        }
+
+        Ok(Statement::Match { subject, arms })
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement, Box<dyn std::error::Error>> {
@@ -975,6 +1155,21 @@ impl Parser {
                 self.advance();
                 Ok(Expression::NoneLiteral)
             }
+            TokenKind::SelfKw => {
+                self.advance();
+                Ok(Expression::Identifier("self".to_string()))
+            }
+            TokenKind::FStringLiteral => {
+                let text = self.advance().unwrap().text.clone();
+                // text is like f"...content..." - skip first 2 chars and last 1
+                let inner = if text.len() >= 3 {
+                    &text[2..text.len() - 1]
+                } else {
+                    ""
+                };
+                let parts = parse_fstring_parts(inner);
+                Ok(Expression::FString(parts))
+            }
             TokenKind::Identifier => {
                 let name = self.advance().unwrap().text.clone();
 
@@ -1024,7 +1219,18 @@ impl Parser {
     // ── Type parsing ─────────────────────────────────────────
 
     fn parse_type(&mut self) -> Result<TypeExpr, Box<dyn std::error::Error>> {
-        let name = self.expect(TokenKind::Identifier)?.text.clone();
+        // Allow keyword types: none, Self
+        let name = match self.current_kind() {
+            TokenKind::None => {
+                self.advance();
+                "none".to_string()
+            }
+            TokenKind::SelfKw => {
+                self.advance();
+                "Self".to_string()
+            }
+            _ => self.expect(TokenKind::Identifier)?.text.clone(),
+        };
 
         // Generic types: list[int], dict[str, int]
         if self.at(TokenKind::LBracket) {
@@ -1040,6 +1246,71 @@ impl Parser {
 
         Ok(TypeExpr::Named(name))
     }
+}
+
+/// Parse the inner content of an f-string into literal and expression parts.
+fn parse_fstring_parts(inner: &str) -> Vec<crate::ast::FStringPart> {
+    use crate::ast::FStringPart;
+    use crate::lexer;
+
+    let mut parts = Vec::new();
+    let bytes = inner.as_bytes();
+    let mut literal_start = 0usize;
+    let mut i = 0usize;
+
+    while i < bytes.len() {
+        if bytes[i] == b'{' {
+            // Flush literal before this brace
+            if i > literal_start {
+                parts.push(FStringPart::Literal(inner[literal_start..i].to_string()));
+            }
+            let expr_start = i + 1;
+            let mut depth = 1usize;
+            let mut expr_end = expr_start;
+            let mut j = expr_start;
+            while j < bytes.len() {
+                match bytes[j] {
+                    b'{' => depth += 1,
+                    b'}' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            expr_end = j;
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+                j += 1;
+            }
+            let expr_src = &inner[expr_start..expr_end];
+            i = expr_end + 1;
+            literal_start = i;
+
+            // Parse the expression inside {}
+            let parsed = lexer::tokenize(expr_src)
+                .ok()
+                .and_then(|tokens| crate::parser::parse(tokens).ok())
+                .and_then(|mut prog| prog.statements.pop())
+                .and_then(|stmt| {
+                    if let crate::ast::Statement::Expression(e) = stmt {
+                        Some(e)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| crate::ast::Expression::Identifier(expr_src.trim().to_string()));
+            parts.push(FStringPart::Expression(parsed));
+        } else {
+            i += 1;
+        }
+    }
+
+    // Remaining literal
+    if literal_start < inner.len() {
+        parts.push(FStringPart::Literal(inner[literal_start..].to_string()));
+    }
+
+    parts
 }
 
 #[cfg(test)]

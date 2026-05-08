@@ -111,6 +111,12 @@ pub enum Statement {
     /// `continue`
     Continue,
 
+    /// `require condition` — design by contract precondition
+    Require(Expression),
+
+    /// `ensure condition` — design by contract postcondition
+    Ensure(Expression),
+
     /// Expression used as a statement
     Expression(Expression),
 

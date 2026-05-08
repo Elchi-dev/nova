@@ -355,6 +355,17 @@ impl Formatter {
             Statement::Break => self.writeln("break"),
             Statement::Continue => self.writeln("continue"),
 
+            Statement::Require(expr) => {
+                self.write_indent();
+                self.write(&format!("require {}", self.format_expr(expr)));
+                self.newline();
+            }
+            Statement::Ensure(expr) => {
+                self.write_indent();
+                self.write(&format!("ensure {}", self.format_expr(expr)));
+                self.newline();
+            }
+
             Statement::Expression(expr) => {
                 self.write_indent();
                 self.write(&self.format_expr(expr));

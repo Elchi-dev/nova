@@ -7,3 +7,4 @@ Cargo.lock
 .vscode/
 *.log
 docs/generated/
+examples/docs/

@@ -331,6 +331,10 @@ impl Checker {
                 }
             }
 
+            Statement::Require(expr) | Statement::Ensure(expr) => {
+                self.infer_expression(expr);
+            }
+
             Statement::Expression(expr) => {
                 self.infer_expression(expr);
             }

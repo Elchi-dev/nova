@@ -483,6 +483,21 @@ impl Interpreter {
             Statement::Break => Err(RuntimeError::Break),
             Statement::Continue => Err(RuntimeError::Continue),
 
+            Statement::Require(expr) => {
+                let val = self.eval_expression(expr)?;
+                if !matches!(val, Value::Bool(true)) {
+                    return Err(RuntimeError::Error("require condition failed".to_string()));
+                }
+                Ok(Value::None)
+            }
+            Statement::Ensure(expr) => {
+                let val = self.eval_expression(expr)?;
+                if !matches!(val, Value::Bool(true)) {
+                    return Err(RuntimeError::Error("ensure condition failed".to_string()));
+                }
+                Ok(Value::None)
+            }
+
             // Skip declarations in execution pass
             Statement::FunctionDef { .. }
             | Statement::StructDef { .. }
