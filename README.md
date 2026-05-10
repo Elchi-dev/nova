@@ -189,7 +189,7 @@ See [ROADMAP.md](ROADMAP.md) for the full technical discussion.
 
 ## Status
 
-Nova is in **pre-alpha**. The full developer workflow is in place — `nova init` scaffolds projects, `nova run` executes them, `nova check` type-checks, `nova fmt` formats, `nova test` runs tests, and `nova repl` provides interactive exploration. The type checker, tree-walking interpreter, arena memory system, and module manager are all operational. Active work is on LLVM codegen for `nova build`.
+Nova is in **pre-alpha** (`v0.1.4-dev`). The full developer workflow is in place and the CI is green across Ubuntu, macOS, and Windows. The parser handles the complete language surface — structs, enums with generics, traits, impl blocks, pattern matching, f-strings, contracts, effects, and decorators. The tree-walking interpreter runs Nova programs end-to-end. Active work is on **LLVM codegen** (`v0.2.0`) — making `nova build` produce real native binaries with arena memory active.
 
 See the [Roadmap](ROADMAP.md) for detailed progress on every feature.
 
