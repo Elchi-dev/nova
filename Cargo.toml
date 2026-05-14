@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/nova-codegen",
     "crates/nova-cli",
     "crates/nova-compiler",
     "crates/nova-runtime",

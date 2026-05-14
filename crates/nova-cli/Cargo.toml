@@ -17,3 +17,4 @@ clap = { workspace = true }
 miette = { workspace = true }
 colored = { workspace = true }
 notify = "7"
+nova-codegen = { path = "../nova-codegen" }
