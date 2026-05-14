@@ -36,6 +36,27 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
+      - name: Install LLVM (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-20 main"
+          sudo apt-get update -q
+          sudo apt-get install -y llvm-20-dev libzstd-dev libpolly-20-dev
+          echo "LLVM_SYS_200_PREFIX=/usr/lib/llvm-20" >> $GITHUB_ENV
+
+      - name: Install LLVM (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm@20
+          echo "LLVM_SYS_200_PREFIX=$(brew --prefix llvm@20)" >> $GITHUB_ENV
+
+      - name: Install LLVM (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install llvm --version=20.1.2 -y
+          echo "LLVM_SYS_200_PREFIX=C:\Program Files\LLVM" >> $env:GITHUB_ENV
+
       - name: Build
         run: cargo build --verbose
 
@@ -64,6 +85,14 @@ jobs:
           key: ${{ runner.os }}-cargo-lint-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-lint-
 
+      - name: Install LLVM
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-20 main"
+          sudo apt-get update -q
+          sudo apt-get install -y llvm-20-dev libzstd-dev libpolly-20-dev
+          echo "LLVM_SYS_200_PREFIX=/usr/lib/llvm-20" >> $GITHUB_ENV
+
       - name: Check formatting
         run: cargo fmt --all -- --check
 
@@ -89,6 +118,14 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-examples-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-examples-
+
+      - name: Install LLVM
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-20 main"
+          sudo apt-get update -q
+          sudo apt-get install -y llvm-20-dev libzstd-dev libpolly-20-dev
+          echo "LLVM_SYS_200_PREFIX=/usr/lib/llvm-20" >> $GITHUB_ENV
 
       - name: Build release
         run: cargo build --release
