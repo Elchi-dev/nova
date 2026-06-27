@@ -30,3 +30,17 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# proj-backup: secrets (do not commit)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+id_rsa*
+secret*
+*secret*
+*.db
+*.sqlite
+*.sqlite3

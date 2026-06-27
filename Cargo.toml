@@ -2,6 +2,7 @@
 members = [
     "crates/nova-lexer",
     "crates/nova-parser",
+    "crates/nova-typechecker",
     "crates/nova-compiler",
     "crates/nova-cli",
 ]

@@ -7,8 +7,9 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-nova-lexer   = { path = "../nova-lexer" }
-nova-parser  = { path = "../nova-parser" }
+nova-lexer       = { path = "../nova-lexer" }
+nova-parser      = { path = "../nova-parser" }
+nova-typechecker = { path = "../nova-typechecker" }
 thiserror.workspace = true
 anyhow.workspace = true
 serde = { workspace = true }

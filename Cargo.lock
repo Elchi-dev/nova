@@ -101,6 +101,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ariadne"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44055e597c674aef7cb903b2b9f6e4cba1277ed0d2d61dae7cd52d7ffa81f8e2"
+dependencies = [
+ "unicode-width 0.1.14",
+ "yansi",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -393,6 +403,7 @@ dependencies = [
  "anyhow",
  "nova-lexer",
  "nova-parser",
+ "nova-typechecker",
  "serde",
  "serde_json",
  "thiserror",
@@ -415,6 +426,16 @@ dependencies = [
  "chumsky",
  "nova-lexer",
  "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "nova-typechecker"
+version = "0.1.0"
+dependencies = [
+ "ariadne",
+ "nova-lexer",
+ "nova-parser",
  "thiserror",
 ]
 
@@ -761,6 +782,12 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+
+[[package]]
+name = "yansi"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 
 [[package]]
 name = "zerocopy"

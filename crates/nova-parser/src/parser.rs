@@ -1,4 +1,4 @@
-// chumsky's Simple<Token> is inherently large — boxing adds overhead.
+// chumsky's Simple<Token> error type is inherently large — boxing adds overhead.
 #![allow(clippy::result_large_err)]
 
 use chumsky::prelude::*;
@@ -76,6 +76,7 @@ fn type_expr() -> impl Parser<Token, TypeExpr, Error = ParseErr> + Clone {
     let named =
         primitive_type().or(ident_tok().map_with_span(|name, sp| TypeExpr::Named(name, s(sp))));
 
+    // []T  (array type)
     let array = just(Token::LBracket)
         .then_ignore(just(Token::RBracket))
         .ignore_then(named.clone())
@@ -166,7 +167,6 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParseErr> + Clone {
 
         // ── Postfix: call / field / index ─────────────────────────────────────
 
-        // Argument list for calls: (a, b, c)
         let arg_list = expr
             .clone()
             .separated_by(just(Token::Comma).padded_by(nl()))
@@ -220,7 +220,6 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParseErr> + Clone {
             .repeated()
             .then(postfix)
             .map_with_span(|(ops, expr), sp| {
-                // fold from the right: !!x  →  UnaryOp(Not, UnaryOp(Not, x))
                 ops.into_iter().rev().fold(expr, |inner, op| Expr::UnaryOp {
                     op,
                     expr: Box::new(inner),
@@ -275,7 +274,7 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParseErr> + Clone {
     })
 }
 
-// Internal enum for postfix operations during parsing.
+/// Internal enum used during postfix parsing.
 enum PostfixOp {
     Call(Vec<Expr>, Span),
     Field(String, Span),
@@ -327,12 +326,18 @@ pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParseErr> + Clone {
         let pass_stmt = just(Token::Pass).map_with_span(|_, sp| Stmt::Pass { span: s(sp) });
 
         // if expr: block [elif expr: block]* [else: block]
-        let elif_branch = just(Token::Elif)
+        //
+        // nl() before elif/else because the block emits a BlockEnd, then the
+        // preprocessor emits a Newline (same-level indent), and THEN elif/else
+        // appears.
+        let elif_branch = nl()
+            .ignore_then(just(Token::Elif))
             .ignore_then(expr.clone())
             .then_ignore(just(Token::Colon))
             .then(block.clone());
 
-        let else_branch = just(Token::Else)
+        let else_branch = nl()
+            .ignore_then(just(Token::Else))
             .ignore_then(just(Token::Colon))
             .ignore_then(block.clone());
 
@@ -377,7 +382,15 @@ pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParseErr> + Clone {
                 span: s(sp),
             });
 
-        // assignment: target = expr  or  target += expr  etc.
+        // ── Assignment and expression statements ──────────────────────────────
+        //
+        // IMPORTANT: We cannot have separate `assign_stmt` and `expr_stmt`
+        // because chumsky 0.9 does not backtrack after consuming tokens.
+        // If `assign_stmt` parses the LHS expression and then fails to find
+        // an `=`, it has already consumed tokens and `expr_stmt` never runs.
+        //
+        // Solution: parse the expression first, then OPTIONALLY extend it
+        // into an assignment.  This way the expression is parsed exactly once.
         let assign_op = choice((
             just(Token::Eq).to(None::<BinOp>),
             just(Token::PlusEq).to(Some(BinOp::Add)),
@@ -386,35 +399,35 @@ pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParseErr> + Clone {
             just(Token::SlashEq).to(Some(BinOp::Div)),
         ));
 
-        let assign_stmt = expr
+        let expr_or_assign = expr
             .clone()
-            .then(assign_op)
-            .then(expr.clone())
-            .map_with_span(|((target, op), rhs), sp| {
-                let value = match op {
-                    None => rhs.clone(),
-                    Some(bin_op) => {
-                        let tsp = expr_span(&target).merge(expr_span(&rhs));
-                        Expr::BinOp {
-                            op: bin_op,
-                            lhs: Box::new(target.clone()),
-                            rhs: Box::new(rhs),
-                            span: tsp,
+            .then(assign_op.then(expr.clone()).or_not())
+            .map_with_span(|(target, rhs_opt), sp| match rhs_opt {
+                // Plain expression statement
+                None => Stmt::Expr(target),
+                // Assignment: target = rhs  OR  target += rhs (desugared)
+                Some((op, rhs)) => {
+                    let value = match op {
+                        None => rhs,
+                        Some(bin_op) => {
+                            let tsp = expr_span(&target).merge(expr_span(&rhs));
+                            Expr::BinOp {
+                                op: bin_op,
+                                lhs: Box::new(target.clone()),
+                                rhs: Box::new(rhs),
+                                span: tsp,
+                            }
                         }
+                    };
+                    Stmt::Assign {
+                        target,
+                        value,
+                        span: s(sp),
                     }
-                };
-                Stmt::Assign {
-                    target,
-                    value,
-                    span: s(sp),
                 }
             });
 
-        // expr statement (function calls, etc.)
-        let expr_stmt = expr.clone().map(Stmt::Expr);
-
-        // All statements, tried in priority order.
-        // Assignment must come before expr_stmt since both start with an expr.
+        // All statements, in priority order (keyword-led parsers first).
         let stmt_inner = choice((
             let_stmt,
             var_stmt,
@@ -425,16 +438,18 @@ pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParseErr> + Clone {
             if_stmt,
             while_stmt,
             for_stmt,
-            assign_stmt,
-            expr_stmt,
+            expr_or_assign, // handles both expr statements AND assignments
         ));
 
-        // Statements are separated by Newlines; skip leading/trailing newlines.
+        // Skip leading/trailing newlines around each statement.
         nl().ignore_then(stmt_inner).then_ignore(nl())
     })
 }
 
-/// A block is: BlockStart  stmt*  BlockEnd
+/// A block: `BlockStart  stmt*  BlockEnd`
+///
+/// Statements are separated by `Newline` tokens; leading and trailing
+/// newlines inside the block are allowed.
 fn block_parser(
     stmt: impl Parser<Token, Stmt, Error = ParseErr> + Clone,
 ) -> impl Parser<Token, Vec<Stmt>, Error = ParseErr> + Clone {
@@ -444,7 +459,7 @@ fn block_parser(
         .delimited_by(just(Token::BlockStart), just(Token::BlockEnd))
 }
 
-// ── Top-level item parser ─────────────────────────────────────────────────────
+// ── Top-level item parsers ────────────────────────────────────────────────────
 
 /// Parse a function parameter: `name [: type]`
 fn param_parser() -> impl Parser<Token, Param, Error = ParseErr> + Clone {
@@ -475,7 +490,7 @@ fn runtime_config_parser() -> impl Parser<Token, RuntimeConfig, Error = ParseErr
         })
 }
 
-/// Parse a `fn` declaration with optional decorators.
+/// Parse a `fn` declaration (with optional leading decorators).
 fn function_parser() -> impl Parser<Token, Function, Error = ParseErr> + Clone {
     let stmt = stmt_parser();
     let block = block_parser(stmt);
@@ -504,11 +519,13 @@ fn function_parser() -> impl Parser<Token, Function, Error = ParseErr> + Clone {
         )
 }
 
-/// Parse a `module` declaration with optional decorators.
+/// Parse a `module` declaration (with optional leading decorators).
+///
+/// Module bodies can contain the same items as the top level.
 fn module_parser() -> impl Parser<Token, ModuleDecl, Error = ParseErr> + Clone {
-    // Module items are either functions, nested modules, or top-level statements.
-    let stmt = stmt_parser();
-    let block_stmts = stmt
+    let item = item_parser();
+
+    let body = item
         .separated_by(just(Token::Newline))
         .allow_leading()
         .allow_trailing()
@@ -518,15 +535,11 @@ fn module_parser() -> impl Parser<Token, ModuleDecl, Error = ParseErr> + Clone {
         .then_ignore(just(Token::Module))
         .then(ident_tok())
         .then_ignore(just(Token::Colon))
-        .then(block_stmts)
-        .map_with_span(|((decorators, name), stmts), sp| ModuleDecl {
+        .then(body)
+        .map_with_span(|((decorators, name), items), sp| ModuleDecl {
             decorators,
             name,
-            // Convert stmts to items — for now wrap as Expr items
-            items: stmts
-                .into_iter()
-                .map(|st| Item::Expr(Stmt::into_expr(st)))
-                .collect(),
+            items,
             span: s(sp),
         })
 }
@@ -574,19 +587,47 @@ fn import_parser() -> impl Parser<Token, ImportDecl, Error = ParseErr> + Clone {
         })
 }
 
+// ── Item parser (used at program level AND inside modules) ────────────────────
+
+fn item_parser() -> impl Parser<Token, Item, Error = ParseErr> + Clone {
+    // `module` is mutually recursive with `item` (module bodies contain items),
+    // so we use chumsky's `recursive()` to break the cycle instead of two
+    // separate `impl Trait` functions calling each other.
+    recursive(|item| {
+        let module_body = item
+            .clone()
+            .separated_by(just(Token::Newline))
+            .allow_leading()
+            .allow_trailing()
+            .delimited_by(just(Token::BlockStart), just(Token::BlockEnd));
+
+        let module = decorators()
+            .then_ignore(just(Token::Module))
+            .then(ident_tok())
+            .then_ignore(just(Token::Colon))
+            .then(module_body)
+            .map_with_span(|((decorators, name), items), sp| ModuleDecl {
+                decorators,
+                name,
+                items,
+                span: s(sp),
+            });
+
+        choice((
+            runtime_config_parser().map(Item::RuntimeConfig),
+            function_parser().map(Item::Function),
+            module.map(Item::Module),
+            struct_parser().map(Item::Struct),
+            import_parser().map(Item::Import),
+            expr_parser().map(Item::Expr),
+        ))
+    })
+}
+
 // ── Top-level program parser ──────────────────────────────────────────────────
 
 pub fn program_parser() -> impl Parser<Token, Vec<Item>, Error = ParseErr> {
-    let item = choice((
-        runtime_config_parser().map(Item::RuntimeConfig),
-        function_parser().map(Item::Function),
-        module_parser().map(Item::Module),
-        struct_parser().map(Item::Struct),
-        import_parser().map(Item::Import),
-        expr_parser().map(Item::Expr),
-    ));
-
-    nl().ignore_then(item)
+    nl().ignore_then(item_parser())
         .then_ignore(nl())
         .repeated()
         .then_ignore(end())

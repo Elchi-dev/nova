@@ -1,0 +1,13 @@
+[package]
+name = "nova-typechecker"
+description = "Type checker and inference engine for the Nova programming language"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+nova-lexer  = { path = "../nova-lexer" }
+nova-parser = { path = "../nova-parser" }
+thiserror.workspace = true
+ariadne.workspace = true

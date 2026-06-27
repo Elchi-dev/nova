@@ -1,4 +1,5 @@
 use nova_parser::ParseError;
+use nova_typechecker::TypeError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -7,7 +8,7 @@ pub enum CompileError {
     Parse(#[from] ParseError),
 
     #[error("type error: {0}")]
-    Type(String),
+    Type(TypeError),
 
     #[error("codegen error: {0}")]
     Codegen(String),
