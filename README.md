@@ -1,3 +1,8 @@
+
+# DISCONTINUED
+
+
+
 <p align="center">
   <a href="https://github.com/Elchi-dev/nova/actions/workflows/ci.yml"><img src="https://github.com/Elchi-dev/nova/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/status-pre--alpha-orange" alt="Status">
